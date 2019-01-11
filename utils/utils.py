@@ -8,6 +8,7 @@ logger = logging.getLogger()
 
 
 def list_lamdbas_for_layer(region, stage, layer_name):
+    file = open(stage + '_' + layer_name + '.txt', 'w')
     client = boto3.client('lambda')
     lambdas = []
     # See https://github.com/aws/aws-sdk-js/issues/1931 for why not passing master region
@@ -39,7 +40,8 @@ def list_lamdbas_for_layer(region, stage, layer_name):
             if layer_name in layer['Arn']:
                 filtered_lambdas.append(function_name)
                 break
-    logger.info(filtered_lambdas)
+    file.write(str(filtered_lambdas))
+    file.close()
     return filtered_lambdas
 
 
