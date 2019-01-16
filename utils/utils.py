@@ -1,5 +1,6 @@
 import boto3
-import sys, getopt
+import sys
+import getopt
 import logging
 
 
@@ -42,8 +43,7 @@ def update_lamdbas_for_layer(region, stage, layer_name, arn):
                 filtered_lambdas.append(function_name)
                 layer['Arn'] = arn
             layers_strings.append(layer['Arn'])
-            print(layers_strings)
-        response = client.update_function_configuration(FunctionName=function_name, Layers=layers_strings)
+        client.update_function_configuration(FunctionName=function_name, Layers=layers_strings)
     file.write(str(filtered_lambdas))
     file.close()
     return filtered_lambdas
