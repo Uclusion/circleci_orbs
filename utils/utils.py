@@ -3,12 +3,11 @@ import sys
 import getopt
 import logging
 
-
 logging.basicConfig(level=logging.INFO, format='')
 logger = logging.getLogger()
 
 
-def update_lamdbas_for_layer(region, stage, layer_name, arn):
+def update_lamdbas_for_layer(region, stage, layer_name, layer_version):
     file = open(stage + '_' + layer_name + '.txt', 'w')
     client = boto3.client('lambda')
     lambdas = []
@@ -38,12 +37,16 @@ def update_lamdbas_for_layer(region, stage, layer_name, arn):
             continue
         layers = a_lambda['Layers'] if 'Layers' in a_lambda else []
         layers_strings = []
+        layers_updated = 0
         for layer in layers:
-            if layer_name in layer['Arn']:
+            layer_arn = layer['Arn']
+            if layer_name in layer_arn:
                 filtered_lambdas.append(function_name)
-                layer['Arn'] = arn
-            layers_strings.append(layer['Arn'])
-        client.update_function_configuration(FunctionName=function_name, Layers=layers_strings)
+                layer_arn = layer_arn[:layer_arn.rfind(":") + 1] + layer_version
+                layers_updated += 1
+            layers_strings.append(layer_arn)
+        if layers_updated > 0:
+            client.update_function_configuration(FunctionName=function_name, Layers=layers_strings)
     file.write(str(filtered_lambdas))
     file.close()
     return filtered_lambdas
@@ -51,17 +54,17 @@ def update_lamdbas_for_layer(region, stage, layer_name, arn):
 
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv,'hr:s:l:a:',['region=', 'stage=', 'layer=', 'arn='])
+        opts, args = getopt.getopt(argv, 'h:r:s:l:v:', ['region=', 'stage=', 'layer=', 'version='])
     except getopt.GetoptError:
-        logger.info('utils.py -r region -s stage -l layer_name -a arn')
+        logger.info('utils.py -r region -s stage -l layer_name -v layer_version')
         sys.exit(2)
     region = None
     stage = None
     layer = None
-    arn = None
+    version = None
     for opt, arg in opts:
         if opt == '-h':
-            logger.info('utils.py -r region -s stage -l layer_name -a arn')
+            logger.info('utils.py -r region -s stage -l layer_name -v layer_version')
             sys.exit()
         elif opt in ('-r', '--region'):
             region = arg
@@ -69,12 +72,12 @@ def main(argv):
             stage = arg
         elif opt in ('-l', '--layer'):
             layer = arg
-        elif opt in ('-a', '--arn'):
-            arn = arg
-    if region is None or stage is None or layer is None:
-        logger.info('utils.py -r region -s stage -l layer_name -a arn')
+        elif opt in ('-v', '--version'):
+            version = arg
+    if region is None or stage is None or layer is None or version is None:
+        logger.info('utils.py -r region -s stage -l layer_name -v version')
         sys.exit(2)
-    return update_lamdbas_for_layer(region, stage, layer, arn)
+    return update_lamdbas_for_layer(region, stage, layer, version)
 
 
 if __name__ == "__main__":
