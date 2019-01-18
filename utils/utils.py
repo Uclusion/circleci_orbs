@@ -7,9 +7,16 @@ logging.basicConfig(level=logging.INFO, format='')
 logger = logging.getLogger()
 
 
-def update_lamdbas_for_layer(region, stage, layer_name, layer_version):
-    file = open(stage + '_' + layer_name + '.txt', 'w')
+def update_lamdbas_for_layer(region, stage, layer_name):
     client = boto3.client('lambda', region_name=region)
+    response = client.list_layers()
+    layers = response['Layers']
+    layer_version = 0
+    for layer in layers:
+        if layer['LayerName'] == layer_name:
+            layer_version = layer['LatestMatchingVersion']['Version']
+    if layer_version == 0:
+        raise Exception('No matching layer')
     lambdas = []
     # See https://github.com/aws/aws-sdk-js/issues/1931 for why not passing master region
     response = client.list_functions(
@@ -47,24 +54,21 @@ def update_lamdbas_for_layer(region, stage, layer_name, layer_version):
             layers_strings.append(layer_arn)
         if layers_updated > 0:
             client.update_function_configuration(FunctionName=function_name, Layers=layers_strings)
-    file.write(str(filtered_lambdas))
-    file.close()
     return filtered_lambdas
 
 
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv, 'h:r:s:l:v:', ['region=', 'stage=', 'layer=', 'version='])
+        opts, args = getopt.getopt(argv, 'h:r:s:l:', ['region=', 'stage=', 'layer='])
     except getopt.GetoptError:
-        logger.info('utils.py -r region -s stage -l layer_name -v layer_version')
+        logger.info('utils.py -r region -s stage -l layer_name')
         sys.exit(2)
     region = None
     stage = None
     layer = None
-    version = None
     for opt, arg in opts:
         if opt == '-h':
-            logger.info('utils.py -r region -s stage -l layer_name -v layer_version')
+            logger.info('utils.py -r region -s stage -l layer_name')
             sys.exit()
         elif opt in ('-r', '--region'):
             region = arg
@@ -74,10 +78,10 @@ def main(argv):
             layer = arg
         elif opt in ('-v', '--version'):
             version = arg
-    if region is None or stage is None or layer is None or version is None:
-        logger.info('utils.py -r region -s stage -l layer_name -v version')
+    if region is None or stage is None or layer is None:
+        logger.info('utils.py -r region -s stage -l layer_name')
         sys.exit(2)
-    return update_lamdbas_for_layer(region, stage, layer, version)
+    return update_lamdbas_for_layer(region, stage, layer)
 
 
 if __name__ == "__main__":
