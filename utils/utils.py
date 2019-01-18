@@ -49,7 +49,7 @@ def update_lamdbas_for_layer(region, stage, layer_name):
             layer_arn = layer['Arn']
             if layer_name in layer_arn:
                 filtered_lambdas.append(function_name)
-                layer_arn = layer_arn[:layer_arn.rfind(":") + 1] + layer_version
+                layer_arn = layer_arn[:layer_arn.rfind(":") + 1] + str(layer_version)
                 layers_updated += 1
             layers_strings.append(layer_arn)
         if layers_updated > 0:
