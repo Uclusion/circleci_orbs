@@ -9,7 +9,7 @@ logger = logging.getLogger()
 
 def update_lamdbas_for_layer(region, stage, layer_name, layer_version):
     file = open(stage + '_' + layer_name + '.txt', 'w')
-    client = boto3.client('lambda')
+    client = boto3.client('lambda', region_name=region)
     lambdas = []
     # See https://github.com/aws/aws-sdk-js/issues/1931 for why not passing master region
     response = client.list_functions(
