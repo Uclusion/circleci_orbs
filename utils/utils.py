@@ -51,6 +51,7 @@ def update_lamdbas_layers(region, stage):
                         layers_updated += 1
             layers_strings.append(layer_arn)
         if layers_updated > 0:
+            logger.info('Updating ' + function_name)
             client.update_function_configuration(FunctionName=function_name, Layers=layers_strings)
 
 
