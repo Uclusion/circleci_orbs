@@ -17,14 +17,13 @@ def tag_all_repos(user, password):
     g = Github(user, password)
     developer_stuff = g.get_repo('Uclusion/developer_stuff', lazy=False)
     release = developer_stuff.get_latest_release()
-    tag_name = release.tag_name
     for repo in g.get_user().get_repos():
         if repo.name in rest_api_backend_non_layer_repos:
             ref = repo.get_git_ref('heads/master')
             # See https://github.com/PyGithub/PyGithub/blob/master/github/Repository.py
-            git_tag = repo.create_git_tag(tag_name, 'Across repos tag', ref.object.sha, ref.object.type)
-            print('Creating tag for ' + repo.name)
-            repo.create_git_ref('refs/tags/' + git_tag.tag, git_tag.sha)
+            logger.info('Creating release for ' + repo.name)
+            repo.create_git_tag_and_release(release.tag_name, 'Across repos tag', release.title, release.body,
+                                            ref.object.sha, ref.object.type)
 
 
 usage = 'github_utils.py -u user -p some_password'
