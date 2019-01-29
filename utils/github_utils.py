@@ -78,7 +78,8 @@ def main(argv):
             file = open('release.txt', 'w')
             file.write('marker to avoid circleci conditional nonsense')
             file.close()
-    tag_all_repos(g, release, tag_prefix)
+    else:
+        tag_all_repos(g, release, tag_prefix)
 
 
 if __name__ == "__main__":
