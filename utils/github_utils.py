@@ -74,7 +74,10 @@ def main(argv):
     release = developer_stuff.get_latest_release()
     tag_prefix = release.tag_name.partition('.')[0]
     if repo is not None:
-        sys.exit(check_repo(g, tag_prefix, repo))
+        if check_repo(g, tag_prefix, repo) == 1:
+            file = open('release.txt', 'w')
+            file.write('marker to avoid circleci conditional nonsense')
+            file.close()
     tag_all_repos(g, release, tag_prefix)
 
 
