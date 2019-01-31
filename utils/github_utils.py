@@ -28,8 +28,8 @@ def tag_all_repos(g, release, tag_prefix):
             if not found:
                 # See https://github.com/PyGithub/PyGithub/blob/master/github/Repository.py
                 logger.info('Creating release for ' + repo.name)
-                repo.create_git_tag_and_release(release.tag_name, 'Across repos tag', release.title, release.body,
-                                                ref.object.sha, ref.object.type)
+                repo.create_git_tag_and_release(release.tag_name + '_across', 'Across repos tag', release.title,
+                                                release.body, ref.object.sha, ref.object.type)
 
 
 def check_repo(g, tag_prefix, repo_full_name):
