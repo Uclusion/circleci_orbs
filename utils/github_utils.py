@@ -10,15 +10,20 @@ logging.basicConfig(level=logging.INFO, format='')
 logger = logging.getLogger()
 
 
+def get_latest_release(repo):
+    latest_release = None
+    for db_release in ReleasesModel.query(repo.name):
+        if latest_release is None or latest_release.created_at < db_release.created_at:
+            latest_release = db_release
+    return latest_release
+
+
 def tag_all_repos(g, release, tag_prefix):
     for repo in g.get_user().get_repos():
         if repo.name in rest_api_backend_repos:
             ref = repo.get_git_ref('heads/master')
             tags = repo.get_tags()
-            latest_release = None
-            for db_release in ReleasesModel.query(repo.name):
-                if latest_release is None or latest_release.created_at < db_release.created_at:
-                    latest_release = db_release
+            latest_release = get_latest_release(repo)
             found = False
             for tag in tags:
                 if tag_prefix in tag.name and tag.commit.sha == ref.object.sha and latest_release is not None \
@@ -35,10 +40,12 @@ def tag_all_repos(g, release, tag_prefix):
 
 def check_repo(g, tag_prefix, repo_full_name):
     repo = g.get_repo(repo_full_name, lazy=False)
+    latest_release = get_latest_release(repo)
     ref = repo.get_git_ref('heads/master')
     tags = repo.get_tags()
     for tag in tags:
-        if tag_prefix in tag.name and tag.commit.sha == ref.object.sha:
+        if tag_prefix in tag.name and tag.commit.sha == ref.object.sha and latest_release is not None \
+                and latest_release.tag_name == tag.name:
             logger.info('Suggesting skipping ' + repo.name)
             return 0
     logger.info('Suggesting release for ' + repo.name)
