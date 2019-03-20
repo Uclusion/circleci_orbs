@@ -38,7 +38,7 @@ def check_repo(g, tag_prefix, repo_full_name):
     return 1
 
 
-usage = 'github_utils.py -u user -p some_password'
+usage = 'python -m utils.github_utils -u user -p some_password'
 
 
 def main(argv):
