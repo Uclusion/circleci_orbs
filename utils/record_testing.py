@@ -15,6 +15,8 @@ def testing_record(num_failing, env_name):
         for release in ReleasesModel.query(repo, filter_condition=ReleasesModel.env_name == env_name):
             if latest_release is None or latest_release.created_at < release.created_at:
                 latest_release = release
+        if latest_release is None:
+            logger.warning('Latest release not found '+ repo)
         latest_release.num_failing = num_failing
         latest_release.save()
 
