@@ -16,9 +16,9 @@ def tag_all_repos(g, release, tag_prefix):
             ref = repo.get_git_ref('heads/master')
             tags = repo.get_tags()
             latest_release = None
-            for release in ReleasesModel.query(repo.name):
-                if latest_release is None or latest_release.created_at < release.created_at:
-                    latest_release = release
+            for db_release in ReleasesModel.query(repo.name):
+                if latest_release is None or latest_release.created_at < db_release.created_at:
+                    latest_release = db_release
             found = False
             for tag in tags:
                 if tag_prefix in tag.name and tag.commit.sha == ref.object.sha and latest_release is not None \
