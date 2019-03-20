@@ -1,4 +1,4 @@
-from pynamodb.attributes import UnicodeAttribute, UTCDateTimeAttribute
+from pynamodb.attributes import UnicodeAttribute, UTCDateTimeAttribute, NumberAttribute
 from pynamodb.models import Model
 
 
@@ -11,4 +11,5 @@ class ReleasesModel(Model):
     repo_name = UnicodeAttribute(hash_key=True, null=False)
     tag_name = UnicodeAttribute(range_key=True, null=False)
     env_name = UnicodeAttribute(null=False)
+    num_failing = NumberAttribute(null=True)
     created_at = UTCDateTimeAttribute(null=False)
