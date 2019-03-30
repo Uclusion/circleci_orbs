@@ -64,6 +64,7 @@ def main(argv):
             continue
         if release.num_failing > 0:
             logger.info('Failing repo is ' + release.repo_name)
+        logger.info('Repo ' + release.repo_name + ' deployed at ' + str(release.created_at) + ' was tested.')
 
 
 if __name__ == "__main__":
