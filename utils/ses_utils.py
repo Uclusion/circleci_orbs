@@ -10,10 +10,8 @@ logging.basicConfig(level=logging.INFO, format='')
 logger = logging.getLogger()
 
 
-ses = boto3.client('ses')
-
-
-def update_templates(path):
+def update_templates(region, path):
+    ses = boto3.client('ses', region_name=region)
     response = ses.list_templates()
     templates_list = response['TemplatesMetadata']
     files = os.listdir(path)
@@ -37,26 +35,29 @@ def update_templates(path):
         ses.create_template(Template=template['Template'])
 
 
-usage = 'python -m utils.ses_utils -p path'
+usage = 'python -m utils.ses_utils -r region -p path'
 
 
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv, 'h:p:', ['path='])
+        opts, args = getopt.getopt(argv, 'h:r:p:', ['region=', 'path='])
     except getopt.GetoptError:
         logger.info(usage)
         sys.exit(2)
     path = None
+    region = None
     for opt, arg in opts:
         if opt == '-h':
             logger.info(usage)
             sys.exit()
+        elif opt in ('-r', '--region'):
+            region = arg
         elif opt in ('-p', '--env'):
             path = arg
-    if path is None:
+    if path is None or region is None:
         logger.info(usage)
         sys.exit(2)
-    update_templates(path)
+    update_templates(region, path)
 
 
 if __name__ == "__main__":
