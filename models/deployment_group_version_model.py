@@ -1,8 +1,8 @@
 from pynamodb.attributes import UnicodeAttribute
-from ubcommon.models.abstract_model import AbstractModel
+from pynamodb.models import Model
 
 
-class DeploymentGroupVersionModel(AbstractModel):
+class DeploymentGroupVersionModel(Model):
     class Meta():
         table_name = 'uclusion-sso-dev-deployment-group-versions'
         region = 'us-west-2'
