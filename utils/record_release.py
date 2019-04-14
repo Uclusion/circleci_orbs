@@ -22,7 +22,7 @@ def create_release(app_version):
     # TODO for now we don't have custom sub domains so just bump everyone up
     groups = DeploymentGroupVersionModel.scan()
     for group in groups:
-        group.update(actions=[DeploymentGroupVersionModel.version.set(app_version)])
+        group.update(actions=[DeploymentGroupVersionModel.app_version.set(app_version)])
 
 
 usage = 'python -m utils.record_release -e env_name -t tag_name -r repo_name [-a app_version]'

@@ -10,4 +10,4 @@ class DeploymentGroupVersionModel(Model):
 
     deployment_group = UnicodeAttribute(hash_key=True, null=False)
     ui_url = UnicodeAttribute(null=False)
-    version = UnicodeAttribute(null=False)
+    app_version = UnicodeAttribute(null=False)
