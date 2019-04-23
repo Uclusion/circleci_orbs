@@ -14,6 +14,14 @@ def update_templates(region, path):
     ses = boto3.client('ses', region_name=region)
     response = ses.list_templates()
     templates_list = response['TemplatesMetadata']
+    marker = response.get('NextToken', None)
+    while marker is not None:
+        response = ses.list_templates(
+            NextToken=marker
+        )
+        templates_list.extend(response['TemplatesMetadata'])
+        marker = response.get('NextToken', None)
+        logger.info('...')
     files = os.listdir(path)
     templates = {}
     for file_name in files:
@@ -29,7 +37,10 @@ def update_templates(region, path):
             ses.update_template(Template=templates[template_name]['Template'])
             del templates[template_name]
         else:
-            logger.error('Missing ' + template_name)
+            logger.error('Deleting ' + template_name)
+            ses.delete_template(
+                TemplateName=template_name
+            )
     for template_name, template in templates.items():
         logger.info('Creating ' + template_name)
         ses.create_template(Template=template['Template'])
