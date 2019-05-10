@@ -41,7 +41,12 @@ def tag_all_repos(g, release, tag_prefix):
 def check_repo(g, tag_prefix, repo_full_name):
     repo = g.get_repo(repo_full_name, lazy=False)
     latest_release = get_latest_release(repo)
+    if latest_release is not None:
+        logger.info('Latest release is ' + latest_release.tag_name)
+    else:
+        logger.info('No latest release')
     ref = repo.get_git_ref('heads/master')
+    logger.info('Latest sha is ' + ref.object.sha)
     tags = repo.get_tags()
     for tag in tags:
         if tag_prefix in tag.name and tag.commit.sha == ref.object.sha and latest_release is not None \
