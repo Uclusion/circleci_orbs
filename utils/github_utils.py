@@ -2,7 +2,7 @@ import sys
 import getopt
 import logging
 from github import Github
-
+from datetime import datetime
 from models.releases_model import ReleasesModel
 from utils.constants import rest_api_backend_repos
 
@@ -19,6 +19,8 @@ def get_latest_release(repo):
 
 
 def tag_all_repos(g, release, tag_prefix):
+    now = datetime.now()
+    unique_release_suffix = now.strftime("%m_%d_%Y_%H_%M_%S")
     for repo in g.get_user().get_repos():
         if repo.name in rest_api_backend_repos:
             ref = repo.get_git_ref('heads/master')
@@ -34,8 +36,8 @@ def tag_all_repos(g, release, tag_prefix):
             if not found:
                 # See https://github.com/PyGithub/PyGithub/blob/master/github/Repository.py
                 logger.info('Creating release for ' + repo.name)
-                repo.create_git_tag_and_release(release.tag_name + '_across', 'Across repos tag', release.title,
-                                                release.body, ref.object.sha, ref.object.type)
+                repo.create_git_tag_and_release(release.tag_name + '_' + unique_release_suffix, 'Across repos tag',
+                                                release.title, release.body, ref.object.sha, ref.object.type)
 
 
 def check_repo(g, tag_prefix, repo_full_name):
