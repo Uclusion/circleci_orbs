@@ -52,7 +52,7 @@ def check_repo(g, tag_prefix, repo_full_name):
     tags = repo.get_tags()
     for tag in tags:
         if tag_prefix in tag.name and tag.commit.sha == ref.object.sha and latest_release is not None \
-                and latest_release.tag_name == tag.name:
+                and tag.name in latest_release.tag_name:
             logger.info('Suggesting skipping ' + repo.name)
             return 0
     logger.info('Suggesting release for ' + repo.name)
