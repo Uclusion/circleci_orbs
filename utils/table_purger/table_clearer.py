@@ -4,6 +4,7 @@ import boto3
 def purge_table_contents(table_name):
     client = boto3.client('dynamodb')
     keys = get_keys(client, table_name)
+    print(keys)
     # do while would be nice here
     contents = client.scan(TableName=table_name)
     more_pages = 'LastEvaluatedKey' in contents
@@ -18,10 +19,11 @@ def purge_table_contents(table_name):
 
 def get_keys(client, table_name):
     metadata = client.describe_table(TableName=table_name)
-    table_metadata = metadata[table_name]
+    #print(metadata)
+    table_metadata = metadata['Table']
     key_schema = table_metadata['KeySchema']
     keys = map(lambda item: item['AttributeName'], key_schema)
-    return keys
+    return list(keys)
 
 
 def delete_items(client, table_name, keys, items):
