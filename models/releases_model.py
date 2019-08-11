@@ -13,3 +13,4 @@ class ReleasesModel(Model):
     env_name = UnicodeAttribute(null=False)
     num_failing = NumberAttribute(null=True)
     created_at = UTCDateTimeAttribute(null=False)
+    frozen_req_json = UnicodeAttribute(null=True)

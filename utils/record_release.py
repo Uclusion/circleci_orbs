@@ -11,10 +11,11 @@ logging.basicConfig(level=logging.INFO, format='')
 logger = logging.getLogger()
 
 
-def create_record(env_name, tag_name, repo_name):
+def create_record(env_name, tag_name, repo_name, frozen_req):
     release = ReleasesModel(repo_name=repo_name, tag_name=tag_name)
     actions = [ReleasesModel.env_name.set(env_name),
-               ReleasesModel.created_at.set(datetime.now())]
+               ReleasesModel.created_at.set(datetime.now()),
+               ReleasesModel.frozen_req_json.set(frozen_req)]
     release.update(actions=actions)
 
 
@@ -38,6 +39,7 @@ def main(argv):
     tag_name = None
     repo_name = None
     app_version = None
+    frozen_req = None
     for opt, arg in opts:
         if opt == '-h':
             logger.info(usage)
@@ -50,13 +52,15 @@ def main(argv):
             repo_name = arg
         elif opt in ('-a', '--version'):
             app_version = arg
+        elif opt in ('-f', '--frozen'):
+            frozen_req = arg
     if app_version is not None:
         create_release(app_version)
     else:
         if env_name is None or tag_name is None or repo_name is None:
             logger.info(usage)
             sys.exit(2)
-        create_record(env_name, tag_name, repo_name)
+        create_record(env_name, tag_name, repo_name, frozen_req)
 
 
 if __name__ == "__main__":
