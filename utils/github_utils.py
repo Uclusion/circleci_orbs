@@ -59,18 +59,27 @@ def check_repo(g, tag_prefix, repo_full_name):
     return 1
 
 
+def check_in(g, file_path, file_content, repo_full_name):
+    repo = g.get_repo(repo_full_name, lazy=False)
+    file = repo.get_file_contents(file_path)  # This is just to get the file.sha
+    repo.update_file(file_path, 'Updating file ' + file_path, file_content, file.sha)
+    return 1
+
+
 usage = 'python -m utils.github_utils -u user -p some_password'
 
 
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv, 'h:u:p:r:', ['user=', 'password=', 'repo='])
+        opts, args = getopt.getopt(argv, 'h:u:p:r:', ['user=', 'password=', 'repo=', 'file=', 'content='])
     except getopt.GetoptError:
         logger.info(usage)
         sys.exit(2)
     user = None
     password = None
     repo = None
+    file = None
+    content = None
     for opt, arg in opts:
         if opt == '-h':
             logger.info(usage)
@@ -81,6 +90,10 @@ def main(argv):
             password = arg
         elif opt in ('-r', '--repo'):
             repo = arg
+        elif opt in ('-f', '--file'):
+            file = arg
+        elif opt in ('-c', '--content'):
+            content = arg
     if user is None or password is None:
         logger.info(usage)
         sys.exit(2)
@@ -88,7 +101,9 @@ def main(argv):
     developer_stuff = g.get_repo('Uclusion/developer_stuff', lazy=False)
     release = developer_stuff.get_latest_release()
     tag_prefix = release.tag_name.partition('.')[0]
-    if repo is not None:
+    if file is not None:
+        check_in(g, file, content, repo)
+    elif repo is not None:
         if check_repo(g, tag_prefix, repo) == 1:
             file = open('release.txt', 'w')
             file.write('marker to avoid circleci conditional nonsense')

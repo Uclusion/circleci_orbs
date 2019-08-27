@@ -39,7 +39,6 @@ def main(argv):
     tag_name = None
     repo_name = None
     app_version = None
-    frozen_req = None
     for opt, arg in opts:
         if opt == '-h':
             logger.info(usage)
@@ -52,15 +51,13 @@ def main(argv):
             repo_name = arg
         elif opt in ('-a', '--version'):
             app_version = arg
-        elif opt in ('-f', '--frozen'):
-            frozen_req = arg
     if app_version is not None:
         create_release(app_version)
     else:
         if env_name is None or tag_name is None or repo_name is None:
             logger.info(usage)
             sys.exit(2)
-        create_record(env_name, tag_name, repo_name, frozen_req)
+        create_record(env_name, tag_name, repo_name)
 
 
 if __name__ == "__main__":
