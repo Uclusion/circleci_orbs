@@ -11,10 +11,11 @@ logging.basicConfig(level=logging.INFO, format='')
 logger = logging.getLogger()
 
 
-def create_record(env_name, tag_name, repo_name):
+def create_record(env_name, tag_name, repo_name, frozen_req):
     release = ReleasesModel(repo_name=repo_name, tag_name=tag_name)
     actions = [ReleasesModel.env_name.set(env_name),
-               ReleasesModel.created_at.set(datetime.now())]
+               ReleasesModel.created_at.set(datetime.now()),
+               ReleasesModel.frozen_req_json.set(frozen_req)]
     release.update(actions=actions)
 
 
