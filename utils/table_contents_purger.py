@@ -5,7 +5,7 @@ Run at your own risk
 
 from utils.table_purger.table_finder import get_tables
 from utils.table_purger.table_clearer import purge_table_contents
-protected_tables = ['Releases', 'deployment-group-versions', 'slack']
+protected_tables = ['Releases', 'deployment-group-versions']
 
 if __name__ == "__main__":
     tables = get_tables()
