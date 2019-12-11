@@ -29,7 +29,7 @@ def get_tag(repo, tag_name):
     return None
 
 
-usage = 'python -m utils.bless_status -u user -p some_password'
+usage = 'python -m utils.bless_status -u uclusiondeploy -p Uclusi0n_test'
 
 
 def main(argv):
@@ -56,7 +56,7 @@ def main(argv):
         repo = g.get_repo('Uclusion/' + release.repo_name, lazy=False)
         ref = repo.get_git_ref('heads/master')
         tag = get_tag(repo, release.tag_name)
-        if tag.commit.sha != ref.object.sha:
+        if tag is None or tag.commit.sha != ref.object.sha:
             logger.info('Undeployed repo is ' + release.repo_name)
             logger.info('Latest deployed tag name is ' + release.tag_name)
         if release.num_failing is None:
