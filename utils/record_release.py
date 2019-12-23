@@ -4,7 +4,7 @@ import getopt
 
 from models.deployment_group_version_model import DeploymentGroupVersionModel
 from models.releases_model import ReleasesModel
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 logging.basicConfig(level=logging.INFO, format='')
@@ -14,7 +14,7 @@ logger = logging.getLogger()
 def create_record(env_name, tag_name, repo_name):
     release = ReleasesModel(repo_name=repo_name, tag_name=tag_name)
     actions = [ReleasesModel.env_name.set(env_name),
-               ReleasesModel.created_at.set(datetime.now())]
+               ReleasesModel.created_at.set(datetime.now(timezone.utc))]
     release.update(actions=actions)
 
 

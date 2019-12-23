@@ -2,7 +2,7 @@ import sys
 import getopt
 import logging
 from github import Github
-from datetime import datetime
+from datetime import datetime, timezone
 from models.releases_model import ReleasesModel
 from utils.constants import rest_api_backend_repos
 
@@ -19,7 +19,7 @@ def get_latest_release(repo):
 
 
 def tag_all_repos(g, release, tag_prefix):
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     unique_release_suffix = now.strftime("%m_%d_%Y_%H_%M_%S")
     for repo in g.get_user().get_repos():
         if repo.name in rest_api_backend_repos:
