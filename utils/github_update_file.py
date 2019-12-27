@@ -1,3 +1,4 @@
+import base64
 import sys
 import getopt
 import logging
@@ -43,8 +44,12 @@ def main(argv):
     repo = g.get_repo(repo, lazy=False)
     # https://pygithub.readthedocs.io/en/latest/examples/Repository.html#update-a-file-in-the-repository
     contents = repo.get_contents(repo_file)
-    f = open(file, 'r')
-    repo.update_file(contents.path, "latest", f.read(), contents.sha)
+    content =  base64.b64decode(contents.content).decode('UTF-8')
+    with open(file, 'r') as f:
+        new_file = f.read()
+        if content != new_file:
+            logger.info('Updating')
+            repo.update_file(contents.path, "latest", new_file, contents.sha)
 
 
 if __name__ == "__main__":
