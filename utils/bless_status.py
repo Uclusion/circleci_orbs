@@ -61,11 +61,12 @@ def main(argv):
             logger.info('Latest deployed tag name is ' + release.tag_name)
         if release.num_failing is None:
             logger.info('Untested repo is ' + release.repo_name)
-            continue
+            sys.exit(2)
         if release.num_failing > 0:
             logger.info('Failing repo is ' + release.repo_name)
+            sys.exit(2)
         logger.info('Repo ' + release.repo_name + ' deployed at ' + str(release.created_at) + ' was tested.')
-
+        sys.exit(0)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
