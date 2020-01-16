@@ -2,3 +2,26 @@ rest_api_backend_repos = ['uclusion_async', 'uclusion_investible_api', 'uclusion
                           'uclusion_market_api', 'uclusion_shared_resources', 'uclusion_sso', 'uclusion_users',
                           'uclusion_user_api', 'uclusion_websockets', 'uclusion_common',
                           'uclusion_backend_common', 'uclusion_summaries', 'common_lambda_dependencies']
+
+env_to_blessed_tag_prefixes = {
+    'dev': 'stage_blessed',
+    'stage': 'production_blessed',
+    'production': None
+}
+
+env_to_buildable_tag_prefixes = {
+    'stage': 'stage_blessed',
+    'production': 'production_blessed'
+
+}
+env_to_candidate_tag_prefixes = {
+    'dev': 'dev_backend',
+    'stage': 'dev_blessed',
+    'production': 'stage_blessed',
+}
+
+env_to_build_tag_prefix = {
+    'dev': 'dev_backend',
+    'stage': 'stage_backend',
+    'production' : 'production_backend'
+}
