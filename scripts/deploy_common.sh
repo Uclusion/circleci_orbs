@@ -18,9 +18,9 @@ function build_common() {
         mkdir -p $PY_DIR
         pip install --no-deps . -t $PY_DIR
         serverless deploy
-        echo "build"
+        echo build
     else
-        echo "skip"
+        echo skip
     fi
 
 }
@@ -37,9 +37,9 @@ function build_common_dependencies() {
         pip install -r $LOCK_FILE -t $PY_DIR
         pip freeze --path $PY_DIR > ${ENV_NAME}_requirements.txt
         serverless deploy
-        echo "build"
+        echo build
     else
-        echo "skip"
+        echo skip
     fi
 }
 
