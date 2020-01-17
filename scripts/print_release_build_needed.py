@@ -15,7 +15,7 @@ def print_release(github, env_name, repo_name):
     release = releases[0][1]  # only a single repo and release name pair
     tag = get_tag_for_release_by_repo_name(github, repo_name, release)
     head = get_master_sha(github, repo_name)
-    if tag.object.sha == head:
+    if tag.commit.sha == head:
         print("skip")
     else:
         if env_name == 'dev':

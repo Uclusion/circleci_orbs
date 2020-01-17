@@ -10,6 +10,7 @@ env_to_blessed_tag_prefixes = {
 }
 
 env_to_buildable_tag_prefixes = {
+    'dev': 'dev_backend', #techinically this is already built, but unifies some code in printing the last blessed
     'stage': 'stage_blessed',
     'production': 'production_blessed'
 

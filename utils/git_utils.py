@@ -39,17 +39,35 @@ def get_latest_releases_with_prefix(github, prefix, repo_name=None):
     return candidates
 
 
+def get_tag_for_release(repo, release):
+    for candidate in repo.get_tags():
+        if candidate.name == release.tag_name:
+            return candidate
+    return None
+
+
+def get_tag_for_release_by_repo_name(github, repo_name, release):
+    for repo in github.get_user().get_repos():
+        if repo.name == repo_name:
+            return get_tag_for_release(repo, release)
+    return None
+
+
 def clone_release(repo, old_release, new_name):
     # get the tag for the release
-    tag = None
-    for candidate in repo.get_tags():
-        if candidate.name == old_release.tag_name:
-            tag = candidate
-            break
+    tag = get_tag_for_release(repo, old_release)
     if not tag:
         sys.exit(4)
     sha = tag.commit.sha
     repo.create_git_tag_and_release(new_name, 'Blessed build tag', new_name, 'Blessed', sha, 'commit')
+
+
+def get_master_sha(github, repo_name):
+    for repo in github.get_user().get_repos():
+        if repo.name == repo_name:
+            head = repo.get_git_ref('heads/master')
+            return head.object.sha
+    return None
 
 
 def release_head(github, dest_tag_name, repo_name=None):

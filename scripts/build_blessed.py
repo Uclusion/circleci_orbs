@@ -29,7 +29,7 @@ def build_blessed(github, env_name, repo_name=None):
 
 
 def main(argv):
-    usage = 'python -m scripts.test_and_bless -e env_name -t test-dir'
+    usage = 'python -m scripts.test_and_bless -e env_name -g github_user -p github_pass -r repo_name'
     try:
         opts, args = getopt.getopt(argv, 'h:e:g:p:r:', ['env=','guser=', 'gpass=', 'repo-name='])
     except getopt.GetoptError:
