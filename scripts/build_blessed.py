@@ -4,7 +4,7 @@ import getopt
 from utils.constants import env_to_build_tag_prefix, env_to_buildable_tag_prefixes
 from github import Github
 from datetime import datetime, timezone
-from utils.git_utils import clone_latest_releases_with_prefix, release_head
+from utils.git_utils import clone_latest_releases_with_prefix, release_head, get_latest_releases_with_prefix
 
 logging.basicConfig(level=logging.INFO, format='')
 logger = logging.getLogger()
@@ -19,12 +19,13 @@ def get_build_tag(env_name):
 
 def build_blessed(github, env_name, repo_name=None):
     build_tag = get_build_tag(env_name)
+    blessed_prefix = env_to_buildable_tag_prefixes[env_name]
     # dev does not build off of a blessed previous release
     # it builds off of head
     if env_name == 'dev':
-        release_head(github, build_tag, repo_name)
+        prebuilt_releases = get_latest_releases_with_prefix(github, blessed_prefix, repo_name)
+        release_head(github, build_tag, prebuilt_releases, repo_name)
     else:
-        blessed_prefix = env_to_buildable_tag_prefixes[env_name]
         clone_latest_releases_with_prefix(github, blessed_prefix, build_tag, repo_name)
 
 

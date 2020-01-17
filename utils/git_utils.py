@@ -70,7 +70,15 @@ def get_master_sha(github, repo_name):
     return None
 
 
-def release_head(github, dest_tag_name, repo_name=None):
+def release_head(github,dest_tag_name, prebuilt_releases, repo_name=None):
+    sha_map = {}
+    for entry in prebuilt_releases:
+        repo = entry[0]
+        release = entry[1]
+        tag = get_tag_for_release(repo, release)
+        if tag:
+            sha_map[repo.name] = tag.commit.sha
+
     if repo_name:
         repos_to_search = [repo_name]
     else:
@@ -79,9 +87,12 @@ def release_head(github, dest_tag_name, repo_name=None):
     for repo in github.get_user().get_repos():
         if repo.name in repos_to_search:
             head = repo.get_git_ref('heads/master')
-            print("Will clone head of " + repo.name +" to " + dest_tag_name)
             sha = head.object.sha
-            repo.create_git_tag_and_release(dest_tag_name, 'Head Build', dest_tag_name, 'Head', sha, 'commit')
+            if sha != sha_map[repo.name]:
+                print("Will clone head of " + repo.name + " to " + dest_tag_name)
+                #repo.create_git_tag_and_release(dest_tag_name, 'Head Build', dest_tag_name, 'Head', sha, 'commit')
+            else:
+                print("Skipping " + repo.name + " because head has already built")
 
 
 def clone_latest_releases_with_prefix(github, source_prefix, dest_tag_name, repo_name=None):
