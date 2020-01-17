@@ -52,9 +52,11 @@ BACKEND_COMMON=$(build_common "uclusion_backend_common")
 COMMON=$(build_common "uclusion_common")
 COMMON_DEPENDENCIES=$(build_common_dependencies)
 
-if ["$BACKEND_COMMON" != "skip" ] || ["$COMMON" != "skip" ] || ["$COMMON_DEPENDENCIES" != "skip" ]; then
+if [[ "$BACKEND_COMMON" != "skip" ]] || [[ "$COMMON" != "skip" ]] || [[ "$COMMON_DEPENDENCIES" != "skip" ]]; then
    echo "Updating Layers"
    update_layers
+else
+    echo "Layers up to date"
 fi
 
 
