@@ -8,7 +8,7 @@ LOCK_FILE=$4
 function build_common() {
     cd ~/circleci_orbs
     local REPO_NAME=$1
-    RELEASE=`python -m scripts.print_last_blessed_release -e $ENV_NAME -g $GITHUB_USER -p $GITHUB_PASSWORD -r $REPO_NAME`
+    RELEASE=`python -m scripts.print_release_build_needed -e $ENV_NAME -g $GITHUB_USER -p $GITHUB_PASSWORD -r $REPO_NAME`
     if [[ "$RELEASE" != "skip" ]]; then
         cd ~/
         git clone git@github.com:Uclusion/$REPO_NAME.git
@@ -26,7 +26,7 @@ function build_common() {
 }
 
 function build_common_dependencies() {
-    RELEASE=`python -m scripts.print_last_blessed_release -e $ENV_NAME -g $GITHUB_USER -p $GITHUB_PASSWORD -r common_lambda_dependencies`
+    RELEASE=`python -m scripts.print_release_build_needed -e $ENV_NAME -g $GITHUB_USER -p $GITHUB_PASSWORD -r common_lambda_dependencies`
     if [[ "$RELEASE" != "skip" ]]; then
         cd ~/
         git clone git@github.com:Uclusion/common_lambda_dependencies.git
