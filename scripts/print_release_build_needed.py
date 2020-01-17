@@ -3,25 +3,29 @@ import sys
 import getopt
 from utils.constants import env_to_buildable_tag_prefixes
 from github import Github
-from utils.git_utils import get_latest_releases_with_prefix
+from utils.git_utils import get_latest_releases_with_prefix, get_master_sha, get_latest_release_with_prefix, get_tag_for_release_by_repo_name
 
 logging.basicConfig(level=logging.INFO, format='')
 logger = logging.getLogger()
 
 
 def print_release(github, env_name, repo_name):
-    if env_name == 'dev':
-        # dev only goes to master
-        print('master')
+    prefix = env_to_buildable_tag_prefixes[env_name]
+    releases = get_latest_releases_with_prefix(github, prefix, repo_name)
+    release = releases[0][1]  # only a single repo and release name pair
+    tag = get_tag_for_release_by_repo_name(github, repo_name, release)
+    head = get_master_sha(github, repo_name)
+    if tag.object.sha == head:
+        print("skip")
     else:
-        prefix = env_to_buildable_tag_prefixes[env_name]
-        releases = get_latest_releases_with_prefix(github, prefix, repo_name)
-        release = releases[0][1] # only a single repo and release name pair
-        print(release.tag_name)
+        if env_name == 'dev':
+            print('master')
+        else:
+            print(release.tag_name)
 
 
 def main(argv):
-    usage = 'python -m scripts.test_and_bless -e env_name -t test-dir'
+    usage = 'python -m scripts.test_and_bless -e env_name -g github_user -p github_pass -r repo-name'
     try:
         opts, args = getopt.getopt(argv, 'h:e:g:p:r:', ['env=','guser=', 'gpass=', 'repo-name='])
     except getopt.GetoptError:
