@@ -6,7 +6,7 @@ rest_api_backend_repos = ['uclusion_async', 'uclusion_investible_api', 'uclusion
 env_to_blessed_tag_prefixes = {
     'dev': 'stage_blessed',
     'stage': 'production_blessed',
-    'production': None
+    'production': 'production_passed'
 }
 
 env_to_buildable_tag_prefixes = {
@@ -17,8 +17,8 @@ env_to_buildable_tag_prefixes = {
 }
 env_to_candidate_tag_prefixes = {
     'dev': 'dev_backend',
-    'stage': 'dev_blessed',
-    'production': 'stage_blessed',
+    'stage': 'stage_backend',
+    'production': 'production_backend',
 }
 
 env_to_build_tag_prefix = {
