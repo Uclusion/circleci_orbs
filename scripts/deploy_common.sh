@@ -53,11 +53,12 @@ COMMON=$(build_common "uclusion_common")
 COMMON_DEPENDENCIES=$(build_common_dependencies)
 
 if [[ "$BACKEND_COMMON" != "skip" ]] || [[ "$COMMON" != "skip" ]] || [[ "$COMMON_DEPENDENCIES" != "skip" ]]; then
-  if [[ "$ENV_NAME" == "dev"]]; then
+  if [[ "$ENV_NAME" == "dev" ]]; then
     echo "Updating Layers"
     update_layers
   else
     echo "Layers will be updated when deploy Lambdas"
+  fi
 else
     echo "Layers up to date"
 fi
