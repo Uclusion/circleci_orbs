@@ -22,7 +22,7 @@ def build_blessed(github, env_name, repo_name=None, is_ui=False):
     blessed_prefix = env_to_buildable_tag_prefixes[env_name]
     # dev does not build off of a blessed previous release
     # it builds off of head
-    if env_name == 'dev':
+    if env_name == 'dev' or (env_name == 'stage' and is_ui):
         prebuilt_releases = get_latest_releases_with_prefix(github, blessed_prefix, repo_name, is_ui)
         release_head(github, build_tag, prebuilt_releases, repo_name)
     else:
