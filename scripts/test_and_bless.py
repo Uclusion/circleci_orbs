@@ -29,7 +29,7 @@ def get_bless_tag(env_name):
     return bless_tag
 
 
-def bless_build(github, env_name):
+def bless_build(github, env_name, is_ui=False):
     if env_name == 'production':
         # production doesn't bless anything
         return
@@ -37,12 +37,12 @@ def bless_build(github, env_name):
     # our env prefix and make a new tag with the blessed prefix
     source_prefix = env_to_candidate_tag_prefixes[env_name]
     bless_tag = get_bless_tag(env_name)
-    clone_latest_releases_with_prefix(github, source_prefix, bless_tag)
+    clone_latest_releases_with_prefix(github, source_prefix, bless_tag, None, is_ui)
 
 def main(argv):
     usage = 'python -m scripts.test_and_bless -e env_name -t test-dir'
     try:
-        opts, args = getopt.getopt(argv, 'h:e:t:g:p:', ['env=', 'test-dir=', 'guser=', 'gpass='])
+        opts, args = getopt.getopt(argv, 'h:e:t:g:p:u:', ['env=', 'test-dir=', 'guser=', 'gpass=', 'ui='])
     except getopt.GetoptError:
         logger.info(usage)
         sys.exit(2)
@@ -50,6 +50,7 @@ def main(argv):
     test_dir = None
     github_user = None
     github_password = None
+    is_ui = False
     for opt, arg in opts:
         if opt == '-h':
             logger.info(usage)
@@ -63,12 +64,15 @@ def main(argv):
             github_user = arg
         elif opt in ('-p', '--gpass'):
             github_password = arg
+        elif opt in ('-u', '--ui'):
+            is_ui = arg.lower() == 'true'
     if env_name is None or test_dir is None or github_user is None or github_password is None:
         logger.info(usage)
         sys.exit(2)
-    run_tests(env_name, test_dir)
+    if not is_ui:
+        run_tests(env_name, test_dir)
     github = Github(github_user, github_password)
-    bless_build(github, env_name)
+    bless_build(github, env_name, is_ui)
 
 if __name__ == "__main__":
     main(sys.argv[1:])

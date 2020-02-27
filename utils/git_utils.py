@@ -23,11 +23,11 @@ def find_latest_release_with_prefix(repo, prefix):
     return latest_release
 
 
-def get_latest_releases_with_prefix(github, prefix, repo_name=None):
+def get_latest_releases_with_prefix(github, prefix, repo_name=None, is_ui=False):
     if repo_name:
         repos_to_search = [repo_name]
     else:
-        repos_to_search = rest_api_backend_repos
+        repos_to_search = rest_api_backend_repos if not is_ui else ['uclusion_web_ui']
     candidates = []
     for repo in github.get_user().get_repos():
         if repo.name in repos_to_search:
@@ -95,9 +95,9 @@ def release_head(github,dest_tag_name, prebuilt_releases, repo_name=None):
                 print("Skipping " + repo.name + " because head has already built")
 
 
-def clone_latest_releases_with_prefix(github, source_prefix, dest_tag_name, repo_name=None):
+def clone_latest_releases_with_prefix(github, source_prefix, dest_tag_name, repo_name=None, is_ui=False):
     print("Cloning releases")
-    candidates = get_latest_releases_with_prefix(github, source_prefix, repo_name)
+    candidates = get_latest_releases_with_prefix(github, source_prefix, repo_name, is_ui)
     for candidate in candidates:
         repo = candidate[0]
         release = candidate[1]
