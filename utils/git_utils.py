@@ -70,7 +70,7 @@ def get_master_sha(github, repo_name):
     return None
 
 
-def release_head(github,dest_tag_name, prebuilt_releases, repo_name=None):
+def release_head(github,dest_tag_name, prebuilt_releases, repo_name=None, is_ui=False):
     sha_map = {}
     for entry in prebuilt_releases:
         repo = entry[0]
@@ -82,7 +82,7 @@ def release_head(github,dest_tag_name, prebuilt_releases, repo_name=None):
     if repo_name:
         repos_to_search = [repo_name]
     else:
-        repos_to_search = rest_api_backend_repos
+        repos_to_search = rest_api_backend_repos if not is_ui else ['uclusion_web_ui']
 
     for repo in github.get_user().get_repos():
         if repo.name in repos_to_search:

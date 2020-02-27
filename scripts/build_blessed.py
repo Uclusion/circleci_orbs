@@ -24,7 +24,7 @@ def build_blessed(github, env_name, repo_name=None, is_ui=False):
     # it builds off of head
     if env_name == 'dev' or (env_name == 'stage' and is_ui):
         prebuilt_releases = get_latest_releases_with_prefix(github, blessed_prefix, repo_name, is_ui)
-        release_head(github, build_tag, prebuilt_releases, repo_name)
+        release_head(github, build_tag, prebuilt_releases, repo_name, is_ui)
     else:
         clone_latest_releases_with_prefix(github, blessed_prefix, build_tag, repo_name, is_ui)
 
