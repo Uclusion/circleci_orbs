@@ -23,7 +23,7 @@ def invoke_scripts(directory, record_file_path):
                 response = subprocess.run(['python', f"{directory}/{file_name}", '1>&2'])
                 logger.info(f"Return code is {response.returncode}")
                 response.check_returncode()
-            lines.append(file_name)
+            lines.append(file_name+"\n")
     with open(record_file_path, 'w') as f:
         f.writelines(lines)
 
