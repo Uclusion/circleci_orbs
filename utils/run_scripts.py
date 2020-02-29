@@ -17,11 +17,12 @@ def invoke_scripts(directory, record_file_path):
     lines = []
     files = os.listdir(directory)
     for file_name in files:
-        if file_name not in already_ran and file_name.endswith(".py"):
-            logger.info(f"Running {file_name}")
-            response = subprocess.run(['python', f"{directory}/{file_name}", '1>&2'])
-            logger.info(f"Return code is {response.returncode}")
-            response.check_returncode()
+        if file_name.endswith(".py"):
+            if file_name not in already_ran:
+                logger.info(f"Running {file_name}")
+                response = subprocess.run(['python', f"{directory}/{file_name}", '1>&2'])
+                logger.info(f"Return code is {response.returncode}")
+                response.check_returncode()
             lines.append(file_name)
     with open(record_file_path, 'w') as f:
         f.writelines(lines)
