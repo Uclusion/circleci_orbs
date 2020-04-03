@@ -13,6 +13,7 @@ def invoke_scripts(directory, record_file_path):
     already_ran = {}
     with open(record_file_path, 'r') as record_file:
         for line in record_file:
+            logger.info(f"Marking already ran for {line}")
             already_ran[line] = True
     lines = []
     files = os.listdir(directory)
