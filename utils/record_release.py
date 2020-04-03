@@ -21,9 +21,8 @@ def create_record(env_name, tag_name, repo_name):
 def create_release(app_version, requires_cache_clear):
     # TODO for now we don't have custom sub domains so just bump everyone up
     groups = DeploymentGroupVersionModel.scan()
-    actions=[DeploymentGroupVersionModel.app_version.set(app_version)]
-    if requires_cache_clear:
-        actions.append(DeploymentGroupVersionModel.requires_cache_clear.set(True))
+    actions=[DeploymentGroupVersionModel.app_version.set(app_version),
+             DeploymentGroupVersionModel.requires_cache_clear.set(requires_cache_clear)]
     for group in groups:
         group.update(actions=actions)
 
