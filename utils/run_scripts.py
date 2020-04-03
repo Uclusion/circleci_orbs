@@ -14,10 +14,11 @@ def invoke_scripts(directory, record_file_path):
     with open(record_file_path, 'r') as record_file:
         for line in record_file:
             logger.info(f"Marking already ran for {line}")
-            already_ran[line] = True
+            already_ran[line.rstrip()] = True
     lines = []
     files = os.listdir(directory)
-    for file_name in files:
+    for raw_file_name in files:
+        file_name = raw_file_name.rstrip()
         if file_name.endswith(".py"):
             if file_name not in already_ran:
                 logger.info(f"Running {file_name}")
