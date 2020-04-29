@@ -36,7 +36,7 @@ def main(argv):
             sys.exit()
         elif opt in ('-d', '--dir'):
             directory = arg
-    if directory is None or file is None:
+    if directory is None:
         logger.info(usage)
         sys.exit(2)
     invoke_reports(directory)
