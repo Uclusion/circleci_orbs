@@ -32,9 +32,6 @@ def update_lamdbas_layers(region, stage):
     stage = '-' + stage + '-'
     for a_lambda in lambdas:
         function_name = a_lambda['FunctionName']
-        if a_lambda['Version'] != '$LATEST':
-            arn = a_lambda['FunctionArn']
-            client.delete_function(FunctionName=arn)
         function_arn = a_lambda['FunctionArn']
         if stage not in function_name or region not in function_arn:
             continue
