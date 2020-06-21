@@ -17,7 +17,7 @@ function build_common() {
         PY_DIR='build/python/lib/python3.7/site-packages'
         mkdir -p $PY_DIR
         pip install --no-deps . -t $PY_DIR
-        /home/circleci/.local/bin/serverless deploy
+        /home/circleci/node_modules/serverless/bin/serverless.js deploy
         echo build
     else
         echo skip
