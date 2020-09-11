@@ -36,7 +36,7 @@ function build_common_dependencies() {
         mkdir -p $PY_DIR
         pip install -r $LOCK_FILE -t $PY_DIR
         pip freeze --path $PY_DIR > ${ENV_NAME}_requirements.txt
-        serverless deploy
+        /home/circleci/repo/node_modules/serverless/bin/serverless.js deploy
         echo build
     else
         echo skip
