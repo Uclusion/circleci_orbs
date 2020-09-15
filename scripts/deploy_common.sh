@@ -31,7 +31,7 @@ function build_common_dependencies() {
         cd ~/
         git clone git@github.com:Uclusion/common_lambda_dependencies.git
         cd common_lambda_dependencies
-        git checkout $RELEASE
+        git -q checkout $RELEASE
         PY_DIR='build/python/lib/python3.7/site-packages'
         mkdir -p $PY_DIR
         pip install -r $LOCK_FILE -t $PY_DIR
