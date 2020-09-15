@@ -13,7 +13,7 @@ function build_common() {
         cd ~/
         git clone git@github.com:Uclusion/$REPO_NAME.git
         cd $REPO_NAME
-        git checkout $RELEASE
+        git -q checkout $RELEASE
         PY_DIR='build/python/lib/python3.7/site-packages'
         mkdir -p $PY_DIR
         pip install --no-deps . -t $PY_DIR
