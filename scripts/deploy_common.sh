@@ -15,7 +15,10 @@ function build_common() {
         cd $REPO_NAME
         if [[ "$RELEASE" != "master" ]]; then
           git checkout $RELEASE
+        else
+          echo 'Skipping checkout'
         fi
+        echo 'Now building...'
         PY_DIR='build/python/lib/python3.7/site-packages'
         mkdir -p $PY_DIR
         pip install --no-deps . -t $PY_DIR
@@ -35,7 +38,10 @@ function build_common_dependencies() {
         cd common_lambda_dependencies
         if [[ "$RELEASE" != "master" ]]; then
           git checkout $RELEASE
+        else
+          echo 'Skipping checkout'
         fi
+        echo 'Now building...'
         PY_DIR='build/python/lib/python3.7/site-packages'
         mkdir -p $PY_DIR
         pip install -r $LOCK_FILE -t $PY_DIR
