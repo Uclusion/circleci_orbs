@@ -13,12 +13,7 @@ function build_common() {
         cd ~/
         git clone git@github.com:Uclusion/$REPO_NAME.git
         cd $REPO_NAME
-        if [[ "$RELEASE" != "master" ]]; then
-          git checkout $RELEASE
-        else
-          echo "Skipping checkout"
-        fi
-        echo "Now building..."
+        git checkout $RELEASE
         PY_DIR='build/python/lib/python3.7/site-packages'
         mkdir -p $PY_DIR
         pip install --no-deps . -t $PY_DIR
@@ -36,12 +31,7 @@ function build_common_dependencies() {
         cd ~/
         git clone git@github.com:Uclusion/common_lambda_dependencies.git
         cd common_lambda_dependencies
-        if [[ "$RELEASE" != "master" ]]; then
-          git checkout $RELEASE
-        else
-          echo "Skipping checkout"
-        fi
-        echo "Now building..."
+        git checkout $RELEASE
         PY_DIR='build/python/lib/python3.7/site-packages'
         mkdir -p $PY_DIR
         pip install -r $LOCK_FILE -t $PY_DIR
@@ -59,9 +49,11 @@ function update_layers() {
 }
 
 BACKEND_COMMON=$(build_common "uclusion_backend_common")
+echo $BACKEND_COMMON
 COMMON=$(build_common "uclusion_common")
-COMMON_DEPENDENCIES=$(build_common_dependencies)
 echo $COMMON
+COMMON_DEPENDENCIES=$(build_common_dependencies)
+echo $COMMON_DEPENDENCIES
 if [[ "$BACKEND_COMMON" != "skip" ]] || [[ "$COMMON" != "skip" ]] || [[ "$COMMON_DEPENDENCIES" != "skip" ]]; then
   if [[ "$ENV_NAME" == "dev" ]]; then
     echo "Updating Layers"
