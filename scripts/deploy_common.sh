@@ -61,7 +61,7 @@ function update_layers() {
 BACKEND_COMMON=$(build_common "uclusion_backend_common")
 COMMON=$(build_common "uclusion_common")
 COMMON_DEPENDENCIES=$(build_common_dependencies)
-
+echo $COMMON
 if [[ "$BACKEND_COMMON" != "skip" ]] || [[ "$COMMON" != "skip" ]] || [[ "$COMMON_DEPENDENCIES" != "skip" ]]; then
   if [[ "$ENV_NAME" == "dev" ]]; then
     echo "Updating Layers"
