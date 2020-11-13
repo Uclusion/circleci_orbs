@@ -40,16 +40,15 @@ def bless_build(github, env_name, is_ui=False):
     clone_latest_releases_with_prefix(github, source_prefix, bless_tag, None, is_ui)
 
 def main(argv):
-    usage = 'python -m scripts.test_and_bless -e env_name -t test-dir'
+    usage = 'python -m scripts.test_and_bless -e env_name -a github_token -t test-dir'
     try:
-        opts, args = getopt.getopt(argv, 'h:e:t:g:p:u:', ['env=', 'test-dir=', 'guser=', 'gpass=', 'ui='])
+        opts, args = getopt.getopt(argv, 'h:e:t:a:u:', ['env=', 'test-dir=', 'gtoken=', 'ui='])
     except getopt.GetoptError:
         logger.info(usage)
         sys.exit(2)
     env_name = None
     test_dir = None
-    github_user = None
-    github_password = None
+    github_token = None
     is_ui = False
     for opt, arg in opts:
         if opt == '-h':
@@ -60,18 +59,16 @@ def main(argv):
         elif opt in ('-t', '--test-dir'):
             if arg:
                 test_dir = os.path.abspath(arg)
-        elif opt in ('-g', '--guser'):
-            github_user = arg
-        elif opt in ('-p', '--gpass'):
-            github_password = arg
+        elif opt in ('-a', '--gtoken'):
+            github_token = arg
         elif opt in ('-u', '--ui'):
             is_ui = arg.lower() == 'true'
-    if env_name is None or test_dir is None or github_user is None or github_password is None:
+    if env_name is None or test_dir is None or github_token is None:
         logger.info(usage)
         sys.exit(2)
     if not is_ui:
         run_tests(env_name, test_dir)
-    github = Github(github_user, github_password)
+    github = Github(github_token)
     bless_build(github, env_name, is_ui)
 
 if __name__ == "__main__":
