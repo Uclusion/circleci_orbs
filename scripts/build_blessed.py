@@ -6,8 +6,10 @@ from github import Github
 from datetime import datetime, timezone
 from utils.git_utils import clone_latest_releases_with_prefix, release_head, get_latest_releases_with_prefix
 
+
 logging.basicConfig(level=logging.INFO, format='')
 logger = logging.getLogger()
+
 
 def get_build_tag(env_name):
     build_prefix = env_to_build_tag_prefix[env_name]
@@ -30,15 +32,14 @@ def build_blessed(github, env_name, repo_name=None, is_ui=False):
 
 
 def main(argv):
-    usage = 'python -m scripts.test_and_bless -e env_name -g github_user -p github_pass -r repo_name -u is_ui'
+    usage = 'python -m scripts.test_and_bless -e env_name -a github_access_token -r repo_name -u is_ui'
     try:
-        opts, args = getopt.getopt(argv, 'h:e:g:p:r:u:', ['env=','guser=', 'gpass=', 'repo-name=', 'ui='])
+        opts, args = getopt.getopt(argv, 'h:e:g:p:r:u:', ['env=','gtoken=', 'repo-name=', 'ui='])
     except getopt.GetoptError:
         logger.info(usage)
         sys.exit(2)
     env_name = None
-    github_user = None
-    github_password = None
+    github_token = None
     repo_name = None
     is_ui = False
     for opt, arg in opts:
@@ -47,19 +48,17 @@ def main(argv):
             sys.exit()
         elif opt in ('-e', '--env'):
             env_name = arg
-        elif opt in ('-g', '--guser'):
-            github_user = arg
-        elif opt in ('-p', '--gpass'):
-            github_password = arg
+        elif opt in ('-a', '--gtoken'):
+            github_token = arg
         elif opt in ('-r', '--repo-name'):
             repo_name = arg
         elif opt in ('-u', '--ui'):
             is_ui = arg.lower() == 'true'
-    if env_name is None or github_user is None or github_password is None:
+    if env_name is None or github_token is None:
         logger.info(usage)
         sys.exit(2)
 
-    github = Github(github_user, github_password)
+    github = Github(github_token)
     build_blessed(github, env_name, repo_name, is_ui)
 
 
