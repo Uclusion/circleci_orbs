@@ -33,15 +33,14 @@ def print_release(github, env_name, repo_name):
 
 
 def main(argv):
-    usage = 'python -m scripts.test_and_bless -e env_name -g github_user -p github_pass -r repo-name'
+    usage = 'python -m scripts.print_release_build_needed -e env_name -a github_token -r repo-name'
     try:
-        opts, args = getopt.getopt(argv, 'h:e:g:p:r:', ['env=','guser=', 'gpass=', 'repo-name='])
+        opts, args = getopt.getopt(argv, 'h:e:a:r:', ['env=', 'gtoken=', 'repo-name='])
     except getopt.GetoptError:
         logger.info(usage)
         sys.exit(2)
     env_name = None
-    github_user = None
-    github_password = None
+    github_token = None
     repo_name = None
     for opt, arg in opts:
         if opt == '-h':
@@ -49,17 +48,15 @@ def main(argv):
             sys.exit()
         elif opt in ('-e', '--env'):
             env_name = arg
-        elif opt in ('-g', '--guser'):
-            github_user = arg
-        elif opt in ('-p', '--gpass'):
-            github_password = arg
+        elif opt in ('-a', '--gtoken'):
+            github_token = arg
         elif opt in ('-r', '--repo-name'):
             repo_name = arg
-    if env_name is None or github_user is None or github_password is None or repo_name is None:
+    if env_name is None or github_token is None or repo_name is None:
         logger.info(usage)
         sys.exit(2)
 
-    github = Github(github_user, github_password)
+    github = Github(github_token)
     print_release(github, env_name, repo_name)
 
 
