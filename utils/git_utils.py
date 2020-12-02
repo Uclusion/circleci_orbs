@@ -31,6 +31,7 @@ def get_latest_releases_with_prefix(github, prefix, repo_name=None, is_ui=False)
     candidates = []
     for repo in github.get_user().get_repos():
         if repo.name in repos_to_search:
+            print("Checking repo " + repo.name)
             latest_release = find_latest_release_with_prefix(repo, prefix)
             candidates.append([repo, latest_release])
     if len(candidates) != len(repos_to_search):

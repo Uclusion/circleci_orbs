@@ -58,7 +58,9 @@ def main(argv):
         logger.info(usage)
         sys.exit(2)
 
+    logger.info("Using token")
     github = Github(github_token)
+    logger.info("Starting build blessed")
     build_blessed(github, env_name, repo_name, is_ui)
 
 
