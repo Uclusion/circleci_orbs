@@ -37,6 +37,7 @@ def bless_build(github, env_name, is_ui=False):
     # our env prefix and make a new tag with the blessed prefix
     source_prefix = env_to_candidate_tag_prefixes[env_name]
     bless_tag = get_bless_tag(env_name)
+    logger.info("Got bless tag " + bless_tag)
     clone_latest_releases_with_prefix(github, source_prefix, bless_tag, None, is_ui)
 
 def main(argv):
@@ -68,7 +69,9 @@ def main(argv):
         sys.exit(2)
     if not is_ui:
         run_tests(env_name, test_dir)
+    logger.info("Using token")
     github = Github(github_token)
+    logger.info("Starting build blessed")
     bless_build(github, env_name, is_ui)
 
 if __name__ == "__main__":
