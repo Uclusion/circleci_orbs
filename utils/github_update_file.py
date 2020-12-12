@@ -26,7 +26,7 @@ def main(argv):
             logger.info(usage)
             sys.exit()
         elif opt in ('-a', '--gtoken'):
-            user = arg
+            github_token = arg
         elif opt in ('-r', '--repo'):
             repo = arg
         elif opt in ('-f', '--file'):
@@ -34,7 +34,7 @@ def main(argv):
         elif opt in ('-i', '--fname'):
             repo_file = arg
     if github_token is None or repo is None or file is None or repo_file is None:
-        logger.info(usage)
+        logger.error(usage)
         sys.exit(2)
     g = Github(github_token)
     repo = f"Uclusion/{repo}"
