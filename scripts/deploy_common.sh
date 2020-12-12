@@ -36,6 +36,8 @@ function build_common_dependencies() {
         pip install -r $LOCK_FILE -t $PY_DIR
         pip freeze --path $PY_DIR > ${ENV_NAME}_requirements.txt
         /home/circleci/repo/node_modules/serverless/bin/serverless.js deploy
+        cd ~/circleci_orbs
+        python -m utils.github_update_file -f ~/common_lambda_dependencies/${ENV_NAME}_requirements.txt -i ${ENV_NAME}_requirements.txt -r common_lambda_dependencies -a ${GITHUB_TOKEN}
         echo build
     else
         echo skip
