@@ -11,6 +11,9 @@ def get_latest_release_with_prefix(releases, prefix):
             if latest is None or created_at > latest_date:
                 latest = release
                 latest_date = created_at
+            else:
+                print(f"Deleting release created {release.created_at}")
+                release.delete_release()
     return latest
 
 
