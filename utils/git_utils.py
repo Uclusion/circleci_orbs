@@ -6,6 +6,7 @@ def get_latest_release_with_prefix(releases, prefix):
     latest = None
     latest_date = None
     for release in releases:
+        print(f"Found release {release.tag_name}")
         if release.tag_name.startswith(prefix):
             created_at = release.created_at
             if latest is None or created_at > latest_date:
