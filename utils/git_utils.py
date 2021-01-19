@@ -113,8 +113,6 @@ def release_head(github, dest_tag_name, prebuilt_releases, repo_name=None, is_ui
             if sha != sha_map.get(repo.name, None):
            #     print("Will clone head of " + repo.name + " to " + dest_tag_name)
                 repo.create_git_tag_and_release(dest_tag_name, 'Head Build', dest_tag_name, 'Head', sha, 'commit')
-            else:
-           #     print("Skipping " + repo.name + " because head has already built")
 
 
 def clone_latest_releases_with_prefix(github, source_prefix, dest_tag_name, repo_name=None, is_ui=False):
