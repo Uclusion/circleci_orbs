@@ -2,24 +2,21 @@ from utils.constants import rest_api_backend_repos
 import sys
 
 
-def get_latest_release_with_prefix(releases, prefix):
+def get_latest_release_with_prefix(tags, prefix):
     latest = None
     latest_date = None
-    for release in releases:
-        if release.tag_name.startswith(prefix):
-            created_at = release.created_at
+    for tag in tags:
+        if tag.name.startswith(prefix):
+            created_at = tag.created_at
             if latest is None or created_at > latest_date:
-                latest = release
+                latest = tag
                 latest_date = created_at
-            else:
-                print(f"Deleting release created {release.created_at}")
-                release.delete_release()
     return latest
 
 
 def find_latest_release_with_prefix(repo, prefix):
-    releases = repo.get_releases()
-    latest_release = get_latest_release_with_prefix(releases, prefix)
+    tags = repo.get_tags()
+    latest_release = get_latest_release_with_prefix(tags, prefix)
     if not latest_release:
         print("Couldn't get a release with prefix " + prefix + " for " + repo.name)
         sys.exit(3)
@@ -42,23 +39,7 @@ def get_latest_releases_with_prefix(github, prefix, repo_name=None, is_ui=False)
     return candidates
 
 
-def get_tag_for_release(repo, release):
-    for candidate in repo.get_tags():
-        if candidate.name == release.tag_name:
-            return candidate
-    return None
-
-
-def get_tag_for_release_by_repo_name(github, repo_name, release):
-    for repo in github.get_user().get_repos():
-        if repo.name == repo_name:
-            return get_tag_for_release(repo, release)
-    return None
-
-
-def clone_release(repo, old_release, new_name):
-    # get the tag for the release
-    tag = get_tag_for_release(repo, old_release)
+def clone_release(repo, tag, new_name):
     if not tag:
         sys.exit(4)
     sha = tag.commit.sha
@@ -77,8 +58,7 @@ def release_head(github,dest_tag_name, prebuilt_releases, repo_name=None, is_ui=
     sha_map = {}
     for entry in prebuilt_releases:
         repo = entry[0]
-        release = entry[1]
-        tag = get_tag_for_release(repo, release)
+        tag = entry[1]
         if tag:
             sha_map[repo.name] = tag.commit.sha
 
@@ -103,6 +83,6 @@ def clone_latest_releases_with_prefix(github, source_prefix, dest_tag_name, repo
     candidates = get_latest_releases_with_prefix(github, source_prefix, repo_name, is_ui)
     for candidate in candidates:
         repo = candidate[0]
-        release = candidate[1]
-        print("Will clone " + release.tag_name + " in repo " + repo.name + " to " + dest_tag_name)
-        clone_release(repo, release, dest_tag_name)
+        tag = candidate[1]
+        print("Will clone " + tag.name + " in repo " + repo.name + " to " + dest_tag_name)
+        clone_release(repo, tag, dest_tag_name)
