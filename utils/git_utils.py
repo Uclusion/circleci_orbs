@@ -2,12 +2,14 @@ from utils.constants import rest_api_backend_repos
 import sys
 
 
-def get_latest_release_with_prefix(tags, prefix):
+def get_latest_release_with_prefix(repo, prefix):
+    tags = repo.get_tags()
     latest = None
     latest_date = None
     for tag in tags:
         if tag.name.startswith(prefix):
-            created_at = tag.created_at
+            git_tag = repo.get_git_tag(tag.commit.sha)
+            created_at = git_tag.tagger.date
             if latest is None or created_at > latest_date:
                 latest = tag
                 latest_date = created_at
@@ -15,8 +17,7 @@ def get_latest_release_with_prefix(tags, prefix):
 
 
 def find_latest_release_with_prefix(repo, prefix):
-    tags = repo.get_tags()
-    latest_release = get_latest_release_with_prefix(tags, prefix)
+    latest_release = get_latest_release_with_prefix(repo, prefix)
     if not latest_release:
         print("Couldn't get a release with prefix " + prefix + " for " + repo.name)
         sys.exit(3)
