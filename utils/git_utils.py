@@ -4,11 +4,10 @@ from utils.constants import rest_api_backend_repos
 import sys
 
 
-
-def get_dev_build_tag():
+def get_dev_build_tag(prefix):
     now = datetime.now(timezone.utc)
     build_tag_suffix = now.strftime("%Y_%m_%d_%H_%M_%S")
-    build_tag = "dev_backend.v" + build_tag_suffix
+    build_tag = prefix + build_tag_suffix
     return build_tag
 
 
@@ -32,12 +31,14 @@ def find_latest_release_with_prefix(github, repo, prefix):
     if not latest_release:
         # if on dev first try cloning head, because github likes to delete our releases on us
         if prefix.startswith("dev") or (repo.name == 'uclusion_web_ui' and prefix.startswith("stage")):
-            build_tag = get_dev_build_tag()
+            build_prefix = "stage_blessed.v" if repo.name == 'uclusion_web_ui' else "dev_backend.v"
+            build_tag = get_dev_build_tag(build_prefix)
             release_head(github, build_tag, [], repo.name, repo.name == 'uclusion_web_ui')
             releases = repo.get_releases()
             latest_release = get_latest_release_with_prefix(releases, prefix)
             if not latest_release:
-                print("Couldn't get a release with prefix " + prefix + " for " + repo.name + " even after releasing dev head")
+                print("Couldn't get a release with prefix " + prefix + " for " + repo.name +
+                      " even after releasing dev head")
                 sys.exit(3)
         else:
             print("Couldn't get a release with prefix " + prefix + " for " + repo.name)
