@@ -8,6 +8,7 @@ def get_latest_release_with_prefix(repo, prefix):
     latest_date = None
     for tag in tags:
         if tag.name.startswith(prefix):
+            print("Looking for git tag with sha " + tag.commit.sha)
             git_tag = repo.get_git_tag(tag.commit.sha)
             created_at = git_tag.tagger.date
             if latest is None or created_at > latest_date:
