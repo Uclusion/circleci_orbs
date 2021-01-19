@@ -1,5 +1,15 @@
+from datetime import datetime, timezone
+
 from utils.constants import rest_api_backend_repos
 import sys
+
+
+
+def get_dev_build_tag():
+    now = datetime.now(timezone.utc)
+    build_tag_suffix = now.strftime("%Y_%m_%d_%H_%M_%S")
+    build_tag = "dev_backend.v" + build_tag_suffix
+    return build_tag
 
 
 def get_latest_release_with_prefix(releases, prefix):
@@ -18,12 +28,22 @@ def get_latest_release_with_prefix(releases, prefix):
     return latest
 
 
-def find_latest_release_with_prefix(repo, prefix):
+def find_latest_release_with_prefix(github, repo, prefix):
     releases = repo.get_releases()
     latest_release = get_latest_release_with_prefix(releases, prefix)
     if not latest_release:
-        print("Couldn't get a release with prefix " + prefix + " for " + repo.name)
-        sys.exit(3)
+        # if on dev first try cloning head, because github likes to delete our releases on us
+        if prefix.startswith("dev"):
+            build_tag = get_dev_build_tag()
+            release_head(github, build_tag, [], repo.name)
+            releases = repo.get_releases()
+            latest_release = get_latest_release_with_prefix(releases, prefix)
+            if not latest_release:
+                print("Couldn't get a release with prefix " + prefix + " for " + repo.name + " even after releasing dev head")
+                sys.exit(3)
+        else:
+            print("Couldn't get a release with prefix " + prefix + " for " + repo.name)
+            sys.exit(3)
     return latest_release
 
 
@@ -35,7 +55,7 @@ def get_latest_releases_with_prefix(github, prefix, repo_name=None, is_ui=False)
     candidates = []
     for repo in github.get_user().get_repos():
         if repo.name in repos_to_search:
-            latest_release = find_latest_release_with_prefix(repo, prefix)
+            latest_release = find_latest_release_with_prefix(github, repo, prefix)
             candidates.append([repo, latest_release])
     if len(candidates) != len(repos_to_search):
         print("Some repos are missing tags")
@@ -74,7 +94,7 @@ def get_master_sha(github, repo_name):
     return None
 
 
-def release_head(github,dest_tag_name, prebuilt_releases, repo_name=None, is_ui=False):
+def release_head(github, dest_tag_name, prebuilt_releases, repo_name=None, is_ui=False):
     sha_map = {}
     for entry in prebuilt_releases:
         repo = entry[0]
@@ -92,7 +112,7 @@ def release_head(github,dest_tag_name, prebuilt_releases, repo_name=None, is_ui=
         if repo.name in repos_to_search:
             head = repo.get_git_ref('heads/master')
             sha = head.object.sha
-            if sha != sha_map[repo.name]:
+            if sha != sha_map.get(repo.name, None):
                 print("Will clone head of " + repo.name + " to " + dest_tag_name)
                 repo.create_git_tag_and_release(dest_tag_name, 'Head Build', dest_tag_name, 'Head', sha, 'commit')
             else:
