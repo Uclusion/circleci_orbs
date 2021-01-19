@@ -16,14 +16,12 @@ def get_latest_release_with_prefix(releases, prefix):
     latest = None
     latest_date = None
     for release in releases:
-        print(f"Found release {release.tag_name}")
         if release.tag_name.startswith(prefix):
             created_at = release.created_at
             if latest is None or created_at > latest_date:
                 latest = release
                 latest_date = created_at
             else:
-                print(f"Deleting release created {release.created_at}")
                 release.delete_release()
     return latest
 
@@ -113,17 +111,17 @@ def release_head(github, dest_tag_name, prebuilt_releases, repo_name=None, is_ui
             head = repo.get_git_ref('heads/master')
             sha = head.object.sha
             if sha != sha_map.get(repo.name, None):
-                print("Will clone head of " + repo.name + " to " + dest_tag_name)
+           #     print("Will clone head of " + repo.name + " to " + dest_tag_name)
                 repo.create_git_tag_and_release(dest_tag_name, 'Head Build', dest_tag_name, 'Head', sha, 'commit')
             else:
-                print("Skipping " + repo.name + " because head has already built")
+           #     print("Skipping " + repo.name + " because head has already built")
 
 
 def clone_latest_releases_with_prefix(github, source_prefix, dest_tag_name, repo_name=None, is_ui=False):
-    print("Cloning releases")
+    #print("Cloning releases")
     candidates = get_latest_releases_with_prefix(github, source_prefix, repo_name, is_ui)
     for candidate in candidates:
         repo = candidate[0]
         release = candidate[1]
-        print("Will clone " + release.tag_name + " in repo " + repo.name + " to " + dest_tag_name)
+       # print("Will clone " + release.tag_name + " in repo " + repo.name + " to " + dest_tag_name)
         clone_release(repo, release, dest_tag_name)
