@@ -1,7 +1,15 @@
 from datetime import datetime, timezone
 
-from utils.constants import rest_api_backend_repos
+from utils.constants import rest_api_backend_repos, env_to_blessed_tag_prefixes
 import sys
+
+
+def get_bless_tag(env_name):
+    bless_tag_prefix = env_to_blessed_tag_prefixes[env_name]
+    now = datetime.now(timezone.utc)
+    bless_tag_suffix = now.strftime("%Y_%m_%d_%H_%M_%S")
+    bless_tag = bless_tag_prefix + '_' + bless_tag_suffix
+    return bless_tag
 
 
 def get_dev_build_tag(prefix):

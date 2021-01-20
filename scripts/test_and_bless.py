@@ -6,7 +6,7 @@ import os
 from utils.constants import env_to_blessed_tag_prefixes, env_to_candidate_tag_prefixes
 from github import Github
 from datetime import datetime, timezone
-from utils.git_utils import clone_latest_releases_with_prefix
+from utils.git_utils import clone_latest_releases_with_prefix, get_bless_tag
 
 logging.basicConfig(level=logging.INFO, format='')
 logger = logging.getLogger()
@@ -21,12 +21,6 @@ def run_tests(env_name, test_dir):
     subprocess.run(test_args, cwd=test_dir, check=True)
 
 
-def get_bless_tag(env_name):
-    bless_tag_prefix = env_to_blessed_tag_prefixes[env_name]
-    now = datetime.now(timezone.utc)
-    bless_tag_suffix = now.strftime("%Y_%m_%d_%H_%M_%S")
-    bless_tag = bless_tag_prefix + '_' + bless_tag_suffix
-    return bless_tag
 
 
 def bless_build(github, env_name, is_ui=False):
@@ -69,8 +63,8 @@ def main(argv):
     if env_name is None or test_dir is None or github_token is None:
         logger.info(usage)
         sys.exit(2)
-    if not is_ui:
-        run_tests(env_name, test_dir)
+    #if not is_ui:
+    #    run_tests(env_name, test_dir)
     logger.info("Using token")
     github = Github(github_token)
     logger.info("Starting build blessed")
