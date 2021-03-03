@@ -25,8 +25,9 @@ def cleanup_releases(prefix, latest_releases):
 
 def cleanup_build_releases(github, env_name):
     prefix = env_to_candidate_tag_prefixes[env_name]
-    latest_releases = get_latest_releases_with_prefix(github, prefix, None, False, True)
-    cleanup_releases(prefix, latest_releases)
+    if prefix:
+        latest_releases = get_latest_releases_with_prefix(github, prefix, None, False, True)
+        cleanup_releases(prefix, latest_releases)
 
 
 def cleanup_bless_releases(github, env_name):
@@ -36,7 +37,7 @@ def cleanup_bless_releases(github, env_name):
 
 
 def main(argv):
-    usage = 'python -m scripts.test_and_bless -e env_name -a github_token'
+    usage = 'python -m scripts.cleanup_old_releases -e env_name -a github_token'
     try:
         opts, args = getopt.getopt(argv, 'h:e:t:a:u:', ['env=', 'test-dir=', 'gtoken=', 'ui='])
     except getopt.GetoptError:
