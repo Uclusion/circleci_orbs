@@ -20,8 +20,6 @@ def get_latest_release_with_prefix(releases, prefix):
             if latest is None or created_at > latest_date:
                 latest = release
                 latest_date = created_at
-            else:
-                release.delete_release()
     return latest
 
 
@@ -46,15 +44,19 @@ def find_latest_release_with_prefix(github, repo, prefix):
     return latest_release
 
 
-def get_latest_releases_with_prefix(github, prefix, repo_name=None, is_ui=False):
+def get_latest_releases_with_prefix(github, prefix, repo_name=None, is_ui=False, output_intermediate=False):
     if repo_name:
         repos_to_search = [repo_name]
     else:
         repos_to_search = rest_api_backend_repos if not is_ui else ['uclusion_web_ui']
     candidates = []
     for repo in github.get_user().get_repos():
+        if output_intermediate:
+            print("Considering " + repo.name)
         if repo.name in repos_to_search:
             latest_release = find_latest_release_with_prefix(github, repo, prefix)
+            if output_intermediate:
+                print("Found release " + latest_release.tag_name)
             candidates.append([repo, latest_release])
     if len(candidates) != len(repos_to_search):
         print("Some repos are missing tags")
@@ -116,11 +118,16 @@ def release_head(github, dest_tag_name, prebuilt_releases, repo_name=None, is_ui
                 repo.create_git_tag_and_release(dest_tag_name, 'Head Build', dest_tag_name, 'Head', sha, 'commit')
 
 
-def clone_latest_releases_with_prefix(github, source_prefix, dest_tag_name, repo_name=None, is_ui=False):
-    #print("Cloning releases")
-    candidates = get_latest_releases_with_prefix(github, source_prefix, repo_name, is_ui)
+def clone_latest_releases_with_prefix(github, source_prefix, dest_tag_name, repo_name=None, is_ui=False, output_intermediate=False):
+    if output_intermediate:
+        print("Cloning releases")
+    candidates = get_latest_releases_with_prefix(github, source_prefix, repo_name, is_ui, output_intermediate)
+    clones = []
     for candidate in candidates:
         repo = candidate[0]
         release = candidate[1]
-       # print("Will clone " + release.tag_name + " in repo " + repo.name + " to " + dest_tag_name)
+        if output_intermediate:
+            print("Will clone " + release.tag_name + " in repo " + repo.name + " to " + dest_tag_name)
         clone_release(repo, release, dest_tag_name)
+        clones.append([repo.name, release.tag_name, dest_tag_name])
+    return clones

@@ -38,7 +38,9 @@ def bless_build(github, env_name, is_ui=False):
     source_prefix = env_to_candidate_tag_prefixes[env_name]
     bless_tag = get_bless_tag(env_name)
     logger.info("Got bless tag " + bless_tag)
-    clone_latest_releases_with_prefix(github, source_prefix, bless_tag, None, is_ui)
+    clones = clone_latest_releases_with_prefix(github, source_prefix, bless_tag, None, is_ui, True)
+    print("Done blessing")
+    return clones
 
 def main(argv):
     usage = 'python -m scripts.test_and_bless -e env_name -a github_token -t test-dir'
@@ -72,7 +74,11 @@ def main(argv):
     logger.info("Using token")
     github = Github(github_token)
     logger.info("Starting build blessed")
-    bless_build(github, env_name, is_ui)
+    clones = bless_build(github, env_name, is_ui)
+    for clone in clones:
+        print("Cloned repo " + clone[0] + " tag " + clone[1] + " to " + clone[2])
+    print("Done blessing")
+    sys.exit(0)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
