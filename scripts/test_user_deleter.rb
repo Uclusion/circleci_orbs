@@ -13,9 +13,7 @@ end.parse!
 
 
 def is_test_user(email)
-  isTuser = email.start_with?('tuser+') && email.end_with?('@uclusion.com')
-  isUclude = email.end_with?('@uclude.com')
-  return isTuser || isUclude
+  return email.start_with?('tuser') && email.end_with?('@uclusion.com')
 end
 
 
