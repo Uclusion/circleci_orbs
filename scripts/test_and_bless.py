@@ -60,11 +60,14 @@ def main(argv):
             github_token = arg
         elif opt in ('-u', '--ui'):
             is_ui = arg.lower() == 'true'
-    if env_name is None or test_dir is None or github_token is None:
+    if env_name is None or github_token is None:
         logger.info(usage)
         sys.exit(2)
-    #if not is_ui:
-    #    run_tests(env_name, test_dir)
+    if not is_ui:
+        if test_dir is None:
+            logger.info(usage)
+            sys.exit(2)
+        run_tests(env_name, test_dir)
     logger.info("Using token")
     github = Github(github_token)
     logger.info("Starting build blessed")
