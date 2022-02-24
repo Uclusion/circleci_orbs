@@ -32,8 +32,12 @@ def get_latest_release_with_prefix(releases, prefix):
 
 
 def find_latest_release_with_prefix(github, repo, prefix):
-    releases = repo.get_releases()
-    latest_release = get_latest_release_with_prefix(releases, prefix)
+    latest_release_any_prefix = repo.get_latest_release()
+    if latest_release_any_prefix is not None and latest_release_any_prefix.tag_name.startswith(prefix):
+        latest_release = latest_release_any_prefix
+    else:
+        releases = repo.get_releases()
+        latest_release = get_latest_release_with_prefix(releases, prefix)
     if not latest_release:
         # if on dev first try cloning head, because github likes to delete our releases on us
         if prefix.startswith("dev") or (repo.name == 'uclusion_web_ui' and prefix.startswith("stage")):
