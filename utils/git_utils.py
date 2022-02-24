@@ -105,12 +105,13 @@ def get_master_sha(github, repo_name):
 
 def release_head(github, dest_tag_name, prebuilt_releases, repo_name=None, is_ui=False):
     sha_map = {}
-    for entry in prebuilt_releases:
-        repo = entry[0]
-        release = entry[1]
-        tag = get_tag_for_release(repo, release)
-        if tag:
-            sha_map[repo.name] = tag.commit.sha
+    if prebuilt_releases is not None:
+        for entry in prebuilt_releases:
+            repo = entry[0]
+            release = entry[1]
+            tag = get_tag_for_release(repo, release)
+            if tag:
+                sha_map[repo.name] = tag.commit.sha
 
     if repo_name:
         repos_to_search = [repo_name]
@@ -121,7 +122,7 @@ def release_head(github, dest_tag_name, prebuilt_releases, repo_name=None, is_ui
         if repo.name in repos_to_search:
             head = repo.get_git_ref('heads/master')
             sha = head.object.sha
-            if sha != sha_map.get(repo.name, None):
+            if sha != sha_map.get(repo.name):
            #     print("Will clone head of " + repo.name + " to " + dest_tag_name)
                 repo.create_git_tag_and_release(dest_tag_name, 'Head Build', dest_tag_name, 'Head', sha, 'commit')
 
