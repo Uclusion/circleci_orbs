@@ -1,12 +1,10 @@
 import logging
 import sys
 import getopt
-import subprocess
-import os
 from utils.constants import env_to_blessed_tag_prefixes, env_to_candidate_tag_prefixes
 from github import Github
-from datetime import datetime, timezone
-from utils.git_utils import clone_latest_releases_with_prefix, get_latest_releases_with_prefix
+from utils.git_utils import get_latest_releases_with_prefix
+
 
 logging.basicConfig(level=logging.INFO, format='')
 logger = logging.getLogger()
@@ -56,8 +54,6 @@ def main(argv):
     if env_name is None or github_token is None:
         logger.info(usage)
         sys.exit(2)
-    #if not is_ui:
-    #    run_tests(env_name, test_dir)
     logger.info("Using token")
     github = Github(github_token)
     logger.info("Starting cleanup")
@@ -65,6 +61,7 @@ def main(argv):
     cleanup_bless_releases(github, env_name)
     print("Done cleaning")
     sys.exit(0)
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])
