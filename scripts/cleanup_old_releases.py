@@ -35,9 +35,9 @@ def cleanup_bless_releases(github, env_name, is_ui=False):
 
 
 def main(argv):
-    usage = 'python -m scripts.cleanup_old_releases -e env_name -a github_token -u ui'
+    usage = 'python -m scripts.cleanup_old_releases -e env_name -a github_token'
     try:
-        opts, args = getopt.getopt(argv, 'h:e:t:a:u:', ['env=', 'test-dir=', 'gtoken=', 'ui='])
+        opts, args = getopt.getopt(argv, 'h:e:t:a:u:', ['env=', 'test-dir=', 'gtoken='])
     except getopt.GetoptError:
         logger.info(usage)
         sys.exit(2)
@@ -51,16 +51,16 @@ def main(argv):
             env_name = arg
         elif opt in ('-a', '--gtoken'):
             github_token = arg
-        elif opt in ('-u', '--ui'):
-            is_ui = True
     if env_name is None or github_token is None:
         logger.info(usage)
         sys.exit(2)
     logger.info("Using token")
     github = Github(github_token)
     logger.info("Starting cleanup")
-    cleanup_build_releases(github, env_name, is_ui)
-    cleanup_bless_releases(github, env_name, is_ui)
+    cleanup_build_releases(github, env_name, True)
+    cleanup_bless_releases(github, env_name, True)
+    cleanup_build_releases(github, env_name, False)
+    cleanup_bless_releases(github, env_name, False)
     print("Done cleaning")
     sys.exit(0)
 
