@@ -36,7 +36,8 @@ def build_blessed(github, env_name, repo_name=None, is_ui=False, is_backend_all=
 def main(argv):
     usage = 'python -m scripts.test_and_bless -e env_name -a github_access_token -r repo_name -u is_ui -b backend_all'
     try:
-        opts, args = getopt.getopt(argv, 'h:e:a:r:u:', ['env=','gtoken=', 'repo-name=', 'ui='])
+        opts, args = getopt.getopt(argv, 'h:e:a:r:u:b:',
+                                   ['env=','gtoken=', 'repo-name=', 'ui=', 'backend-all'])
     except getopt.GetoptError:
         logger.info(usage)
         sys.exit(2)
