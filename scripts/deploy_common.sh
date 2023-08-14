@@ -46,7 +46,7 @@ function build_common_dependencies() {
 
 function update_layers() {
     cd ~/circleci_orbs
-    python -m scripts.build_blessed -e ${ENV_NAME} -a ${GITHUB_TOKEN} -b true
+    python -m scripts.build_blessed -e $ENV_NAME -a $GITHUB_TOKEN -b true
 }
 
 BACKEND_COMMON=$(build_common "uclusion_backend_common")
