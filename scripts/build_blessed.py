@@ -19,12 +19,12 @@ def get_build_tag(env_name):
     return build_tag
 
 
-def build_blessed(github, env_name, repo_name=None, is_ui=False):
+def build_blessed(github, env_name, repo_name=None, is_ui=False, is_backend_all=False):
     build_tag = get_build_tag(env_name)
     blessed_prefix = env_to_buildable_tag_prefixes[env_name]
     # dev does not build off of a blessed previous release
     # it builds off of head
-    if env_name == 'dev' or (env_name == 'stage' and is_ui):
+    if not is_backend_all and (env_name == 'dev' or (env_name == 'stage' and is_ui)):
         # For UI we are specifically told to build so not much point in checking old releases for duplicate
         prebuilt_releases = get_latest_releases_with_prefix(github, blessed_prefix, repo_name, is_ui) \
             if not is_ui else None
@@ -34,7 +34,7 @@ def build_blessed(github, env_name, repo_name=None, is_ui=False):
 
 
 def main(argv):
-    usage = 'python -m scripts.test_and_bless -e env_name -a github_access_token -r repo_name -u is_ui'
+    usage = 'python -m scripts.test_and_bless -e env_name -a github_access_token -r repo_name -u is_ui -b backend_all'
     try:
         opts, args = getopt.getopt(argv, 'h:e:a:r:u:', ['env=','gtoken=', 'repo-name=', 'ui='])
     except getopt.GetoptError:
@@ -44,6 +44,7 @@ def main(argv):
     github_token = None
     repo_name = None
     is_ui = False
+    is_backend_all = False
     for opt, arg in opts:
         if opt == '-h':
             logger.info(usage)
@@ -56,6 +57,8 @@ def main(argv):
             repo_name = arg
         elif opt in ('-u', '--ui'):
             is_ui = arg.lower() == 'true'
+        elif opt in ('-b', '--backend-all'):
+            is_backend_all = arg.lower() == 'true'
     if env_name is None or github_token is None:
         logger.info(usage)
         sys.exit(2)
@@ -63,7 +66,7 @@ def main(argv):
     logger.info("Using token")
     github = Github(github_token)
     logger.info("Starting build blessed")
-    build_blessed(github, env_name, repo_name, is_ui)
+    build_blessed(github, env_name, repo_name, is_ui, is_backend_all)
 
 
 if __name__ == "__main__":
