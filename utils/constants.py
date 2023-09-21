@@ -1,6 +1,6 @@
 rest_api_backend_repos = ['uclusion_async', 'uclusion_investible_api', 'uclusion_markets',
                           'uclusion_market_api', 'uclusion_shared_resources', 'uclusion_sso', 'uclusion_users',
-                          'uclusion_user_api', 'uclusion_websockets', 'uclusion_common',
+                          'uclusion_user_api', 'uclusion_websockets', 'uclusion_common', 'uclusion_test_api',
                           'uclusion_backend_common', 'uclusion_summaries', 'common_lambda_dependencies']
 
 env_to_blessed_tag_prefixes = {
