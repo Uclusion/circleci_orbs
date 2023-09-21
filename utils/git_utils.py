@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from github import UnknownObjectException
 
 from utils.constants import rest_api_backend_repos, env_to_blessed_tag_prefixes
 import sys
@@ -126,7 +127,7 @@ def release_head(github, dest_tag_name, prebuilt_releases, repo_name=None, is_ui
         if repo.name in repos_to_search:
             try:
                 head = repo.get_git_ref('heads/master')
-            except github.GithubException.UnknownObjectException:
+            except UnknownObjectException:
                 print(f"Error accessing {repo.name}")
                 continue
             sha = head.object.sha
