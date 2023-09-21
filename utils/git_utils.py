@@ -124,10 +124,13 @@ def release_head(github, dest_tag_name, prebuilt_releases, repo_name=None, is_ui
 
     for repo in github.get_user().get_repos():
         if repo.name in repos_to_search:
-            head = repo.get_git_ref('heads/master')
+            try:
+                head = repo.get_git_ref('heads/master')
+            except github.GithubException.UnknownObjectException:
+                print(f"Error accessing {repo.name}")
+                continue
             sha = head.object.sha
             if sha != sha_map.get(repo.name):
-           #     print("Will clone head of " + repo.name + " to " + dest_tag_name)
                 repo.create_git_tag_and_release(dest_tag_name, 'Head Build', dest_tag_name, 'Head', sha, 'commit')
 
 
