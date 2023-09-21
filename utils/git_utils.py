@@ -120,11 +120,11 @@ def release_head(github, dest_tag_name, prebuilt_releases, repo_name=None, is_ui
         repos_to_search = rest_api_backend_repos if not is_ui else ['uclusion_web_ui']
 
     for a_name in repos_to_search:
-        repo = github.get_repo(f"Uclusion/{a_name}")
         try:
+            repo = github.get_repo(f"Uclusion/{a_name}")
             head = repo.get_git_ref('heads/master')
         except UnknownObjectException:
-            print(f"Error accessing {repo.name}")
+            print(f"Error accessing {a_name}")
             continue
         sha = head.object.sha
         if sha != sha_map.get(repo.name):
