@@ -63,14 +63,14 @@ def get_latest_releases_with_prefix(github, prefix, repo_name=None, is_ui=False,
     else:
         repos_to_search = rest_api_backend_repos if not is_ui else ['uclusion_web_ui']
     candidates = []
-    for repo in github.get_user().get_repos():
+    for a_name in repos_to_search:
         if output_intermediate:
-            print("Considering " + repo.name)
-        if repo.name in repos_to_search:
-            latest_release = find_latest_release_with_prefix(github, repo, prefix)
-            if output_intermediate:
-                print("Found release " + latest_release.tag_name)
-            candidates.append([repo, latest_release])
+            print("Considering " + a_name)
+        repo = github.get_repo(f"Uclusion/{a_name}")
+        latest_release = find_latest_release_with_prefix(github, repo, prefix)
+        if output_intermediate:
+            print("Found release " + latest_release.tag_name)
+        candidates.append([repo, latest_release])
     if len(candidates) != len(repos_to_search):
         print("Some repos are missing tags")
         sys.exit(5)
@@ -85,10 +85,8 @@ def get_tag_for_release(repo, release):
 
 
 def get_tag_for_release_by_repo_name(github, repo_name, release):
-    for repo in github.get_user().get_repos():
-        if repo.name == repo_name:
-            return get_tag_for_release(repo, release)
-    return None
+    repo = github.get_repo(f"Uclusion/{repo_name}")
+    return get_tag_for_release(repo, release)
 
 
 def clone_release(repo, old_release, new_name):
@@ -101,11 +99,9 @@ def clone_release(repo, old_release, new_name):
 
 
 def get_master_sha(github, repo_name):
-    for repo in github.get_user().get_repos():
-        if repo.name == repo_name:
-            head = repo.get_git_ref('heads/master')
-            return head.object.sha
-    return None
+    repo = github.get_repo(f"Uclusion/{repo_name}")
+    head = repo.get_git_ref('heads/master')
+    return head.object.sha
 
 
 def release_head(github, dest_tag_name, prebuilt_releases, repo_name=None, is_ui=False):
@@ -123,16 +119,16 @@ def release_head(github, dest_tag_name, prebuilt_releases, repo_name=None, is_ui
     else:
         repos_to_search = rest_api_backend_repos if not is_ui else ['uclusion_web_ui']
 
-    for repo in github.get_user().get_repos():
-        if repo.name in repos_to_search:
-            try:
-                head = repo.get_git_ref('heads/master')
-            except UnknownObjectException:
-                print(f"Error accessing {repo.name}")
-                continue
-            sha = head.object.sha
-            if sha != sha_map.get(repo.name):
-                repo.create_git_tag_and_release(dest_tag_name, 'Head Build', dest_tag_name, 'Head', sha, 'commit')
+    for a_name in repos_to_search:
+        repo = github.get_repo(f"Uclusion/{a_name}")
+        try:
+            head = repo.get_git_ref('heads/master')
+        except UnknownObjectException:
+            print(f"Error accessing {repo.name}")
+            continue
+        sha = head.object.sha
+        if sha != sha_map.get(repo.name):
+            repo.create_git_tag_and_release(dest_tag_name, 'Head Build', dest_tag_name, 'Head', sha, 'commit')
 
 
 def clone_latest_releases_with_prefix(github, source_prefix, dest_tag_name, repo_name=None, is_ui=False, output_intermediate=False):
