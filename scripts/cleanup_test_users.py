@@ -120,9 +120,10 @@ class ObjectVersionsModel(Model):
 def main():
     # python -m scripts.cleanup_test_users
     logger.info("Starting cleanup")
-    users = UserModel.scan(
-        filter_condition=(UserModel.email.startswith("tuser")&UserModel.email.endswith("@uclusion.com")))
+    users = UserModel.scan(filter_condition=UserModel.email.startswith("tuser"))
     for user in users:
+        if not user.email.endswith("@uclusion.com"):
+            continue
         logger.info(f"Processing user {user.id}")
         markets = MarketModel.scan(filter_condition=MarketModel.account_id == user.account_id)
         for market in markets:
