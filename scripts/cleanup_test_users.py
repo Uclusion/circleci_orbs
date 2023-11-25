@@ -1,8 +1,10 @@
 import logging
 import os
 import sys
+import base64
 import json
 import boto3
+from datetime import datetime
 from pynamodb.attributes import UnicodeAttribute
 from pynamodb.indexes import GlobalSecondaryIndex, AllProjection
 from pynamodb.models import Model
@@ -13,6 +15,27 @@ logging.basicConfig(level=logging.INFO, format='')
 logger = logging.getLogger()
 region_name = 'us-west-2'
 client = boto3.client('lambda', region_name=region_name)
+
+
+class ModelEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if hasattr(obj, 'attribute_values'):
+            return obj.attribute_values
+        elif isinstance(obj, datetime):
+            return obj.isoformat()
+        elif isinstance(obj, set):
+            return list(obj)
+        return json.JSONEncoder.default(self, obj)
+
+
+def json_dumps(obj):
+    return json.dumps(obj, cls=ModelEncoder)
+
+
+def encode_context(capability):
+    custom_context = {"custom": {"capability": capability}}
+    context = json_dumps(custom_context)
+    return base64.b64encode(context.encode()).decode('utf-8')
 
 
 def invoke_lambda_async(function_name, capability):
