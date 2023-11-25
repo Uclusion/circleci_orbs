@@ -1,14 +1,32 @@
 import logging
 import sys
+import json
+import boto3
 from pynamodb.attributes import UnicodeAttribute
 from pynamodb.indexes import GlobalSecondaryIndex, AllProjection
 from pynamodb.models import Model
-from ucommon.utils.utils import invoke_lambda_async, get_machine_capability
 
 
 logging.basicConfig(level=logging.INFO, format='')
 logger = logging.getLogger()
 region_name = 'us-west-2'
+client = boto3.client('lambda', region_name=region_name)
+
+
+def invoke_lambda_async(function_name, capability):
+    # https://github.com/aws/aws-sdk-js/issues/1388 - no ClientContext when async
+    payload = {
+        'capability': capability
+    }
+    client.invoke(
+        FunctionName=function_name,
+        InvocationType='Event',
+        Payload=json.dumps(payload)
+    )
+
+
+def get_machine_capability(market_id):
+    return {'role': 'Machine', 'is_admin': True, 'type': 'market', 'id': market_id}
 
 
 class UserModel(Model):
