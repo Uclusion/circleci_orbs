@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 import json
 import boto3
@@ -7,6 +8,7 @@ from pynamodb.indexes import GlobalSecondaryIndex, AllProjection
 from pynamodb.models import Model
 
 
+env_name = os.environ['ENV_NAME']
 logging.basicConfig(level=logging.INFO, format='')
 logger = logging.getLogger()
 region_name = 'us-west-2'
@@ -152,4 +154,7 @@ def main():
 
 
 if __name__ == "__main__":
+    if env_name is None:
+        logger.info("No env_name")
+        sys.exit(1)
     main()
