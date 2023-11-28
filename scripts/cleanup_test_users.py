@@ -172,6 +172,7 @@ def main():
         for audit in audits:
             logger.info(f"Processing audit for {audit.external_id}")
             audit.delete()
+        user.delete()
     logger.info("Done cleaning")
     sys.exit(0)
 
