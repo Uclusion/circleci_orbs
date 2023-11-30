@@ -63,6 +63,7 @@ class UserModel(Model):
     external_id = UnicodeAttribute(hash_key=True, null=False)
     account_id = UnicodeAttribute(range_key=True, null=False)
     email = UnicodeAttribute(null=True)
+    referring_user_id = UnicodeAttribute(null=True)
     id = UnicodeAttribute(null=False)
 
 
@@ -145,7 +146,8 @@ class ObjectVersionsModel(Model):
 def main():
     # python -m scripts.cleanup_test_users
     logger.info("Starting cleanup")
-    users = UserModel.scan(filter_condition=UserModel.email.startswith("tuser"))
+    users = UserModel.scan(
+        filter_condition=(UserModel.email.startswith("tuser")&UserModel.referring_user_id.does_not_exist()))
     for user in users:
         if not user.email.endswith("@uclusion.com"):
             continue
