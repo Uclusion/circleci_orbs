@@ -54,6 +54,16 @@ def get_machine_capability(market_id):
     return {'role': 'Machine', 'is_admin': True, 'type': 'market', 'id': market_id}
 
 
+class AccountIndex(GlobalSecondaryIndex):
+    class Meta():
+        region = region_name
+        host = 'https://dynamodb.us-west-2.amazonaws.com'
+        read_capacity_units = 1
+        write_capacity_units = 1
+        projection = AllProjection()
+    account_id = UnicodeAttribute(hash_key=True)
+
+
 class UserModel(Model):
     class Meta():
         table_name = 'uclusion-users-dev-users'
@@ -62,6 +72,7 @@ class UserModel(Model):
 
     external_id = UnicodeAttribute(hash_key=True, null=False)
     account_id = UnicodeAttribute(range_key=True, null=False)
+    account_index = AccountIndex()
     email = UnicodeAttribute(null=True)
     referring_user_id = UnicodeAttribute(null=True)
     id = UnicodeAttribute(null=False)
@@ -169,6 +180,9 @@ def main():
             logger.info(f"Processing capability {capability.type_object_id}")
             capability.delete()
         account = AccountModel(hash_key=user.account_id)
+        for user_in_account in UserModel.account_index.query(account.id):
+            # Make sure all users in account deleted before delete account
+            user_in_account.delete()
         account.delete()
         audits = AuditModel.query(hash_key=user.external_id)
         for audit in audits:
