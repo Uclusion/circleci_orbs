@@ -157,37 +157,40 @@ class ObjectVersionsModel(Model):
 def main():
     # python -m scripts.cleanup_test_users
     logger.info("Starting cleanup")
-    users = UserModel.scan(
-        filter_condition=(UserModel.email.startswith("tuser")&UserModel.referring_user_id.does_not_exist()))
+    users = UserModel.scan(filter_condition=UserModel.email.startswith("tuser"))
     for user in users:
         if not user.email.endswith("@uclusion.com"):
             continue
         logger.info(f"Processing user {user.id}")
-        markets = MarketModel.scan(filter_condition=MarketModel.account_id == user.account_id)
-        for market in markets:
-            logger.info(f"Processing market {market.id}")
-            stages = StageModel.markets_index.query(hash_key=market.id)
-            for stage in stages:
-                logger.info(f"Processing stage {stage.id}")
-                stage.delete()
-            groups = GroupModel.market_index.query(hash_key=market.id)
-            for group in groups:
-                logger.info(f"Processing group {group.id}")
-                group.delete()
-            invoke_lambda_async('uclusion-markets-dev-markets_delete', get_machine_capability(market.id))
+        if user.referring_user_id is None:
+            # Only primary users own markets, accounts, and audits
+            markets = MarketModel.scan(filter_condition=MarketModel.account_id == user.account_id)
+            for market in markets:
+                logger.info(f"Processing market {market.id}")
+                stages = StageModel.markets_index.query(hash_key=market.id)
+                for stage in stages:
+                    logger.info(f"Processing stage {stage.id}")
+                    stage.delete()
+                groups = GroupModel.market_index.query(hash_key=market.id)
+                for group in groups:
+                    logger.info(f"Processing group {group.id}")
+                    group.delete()
+                invoke_lambda_async('uclusion-markets-dev-markets_delete',
+                                    get_machine_capability(market.id))
+            account = AccountModel(hash_key=user.account_id)
+            for user_in_account in UserModel.account_index.query(account.id):
+                # Make sure all users in account deleted before delete account
+                user_in_account.delete()
+            account.delete()
+            audits = AuditModel.query(hash_key=user.external_id)
+            for audit in audits:
+                logger.info(f"Processing audit for {audit.external_id}")
+                audit.delete()
+        # For referred test users still need to delete because external id will change on recreate
         capabilities = UserCapabilityModel.query(hash_key=user.id)
         for capability in capabilities:
             logger.info(f"Processing capability {capability.type_object_id}")
             capability.delete()
-        account = AccountModel(hash_key=user.account_id)
-        for user_in_account in UserModel.account_index.query(account.id):
-            # Make sure all users in account deleted before delete account
-            user_in_account.delete()
-        account.delete()
-        audits = AuditModel.query(hash_key=user.external_id)
-        for audit in audits:
-            logger.info(f"Processing audit for {audit.external_id}")
-            audit.delete()
         user.delete()
     logger.info("Done cleaning")
     sys.exit(0)
