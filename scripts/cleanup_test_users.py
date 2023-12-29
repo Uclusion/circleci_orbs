@@ -171,7 +171,7 @@ def main(argv):
             emails = arg.split(',')
     logger.info("Starting cleanup")
     if emails is not None and len(emails) > 0:
-        users = UserModel.scan(filter_condition=UserModel.email.is_in(emails))
+        users = UserModel.scan(filter_condition=UserModel.email.is_in(*emails))
     else:
         users = UserModel.scan(filter_condition=UserModel.email.startswith("tuser"))
     for user in users:
