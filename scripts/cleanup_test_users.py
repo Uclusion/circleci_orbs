@@ -216,4 +216,4 @@ if __name__ == "__main__":
     if env_name is None:
         logger.info("No env_name")
         sys.exit(1)
-    main()
+    main(sys.argv[1:])
