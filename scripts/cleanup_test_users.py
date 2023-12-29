@@ -171,13 +171,15 @@ def main(argv):
             emails = arg.split(',')
     logger.info("Starting cleanup")
     if emails is not None and len(emails) > 0:
+        has_emails = True
         users = UserModel.scan(filter_condition=UserModel.email.is_in(*emails))
     else:
+        has_emails = False
         users = UserModel.scan(filter_condition=UserModel.email.startswith("tuser"))
     for user in users:
-        if emails is None and not user.email.endswith("@uclusion.com"):
+        if not has_emails and not user.email.endswith("@uclusion.com"):
             continue
-        logger.info(f"Processing user {user.id}")
+        logger.info(f"Processing user {user.id} with {user.email}")
         if user.referring_user_id is None:
             # Only primary users own markets, accounts, and audits
             markets = MarketModel.scan(filter_condition=MarketModel.account_id == user.account_id)
