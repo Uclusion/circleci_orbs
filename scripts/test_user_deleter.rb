@@ -5,13 +5,13 @@ require 'json'
 
 options = {}
 OptionParser.new do |opts|
-  opts.banner = "Usage: test_user_deleter.rb --poolId=<yourpoolid> --all"
+  opts.banner = "Usage: test_user_deleter.rb --poolId=<yourpoolid> --emails=<emailList>"
   opts.on("-p", "--poolId POOLID", "POOLID is required") do |p|
     options[:poolId] = p
   end
-  options[:all] = false
-  opts.on("-a", "--all", "all is false by default") do
-    options[:all] = true
+  options[:emails] = []
+  opts.on("-e", "--emails EMAILS", "specify emails then will just do them") do |e|
+    options[:emails] = e.split(',')
   end
 end.parse!
 
@@ -19,12 +19,12 @@ def is_test_user(email)
   return email.start_with?('tuser') && email.end_with?('@uclusion.com')
 end
 
-def is_not_integration_user(email)
-  return !['david.israel@uclude.com', '827hooshang@gmail.com'].include?(email)
+def is_email_user(email, emails)
+  return emails.include?(email)
 end
 
 poolId = options[:poolId]
-doAll = options[:all]
+emails = options[:emails]
 
 users_response_string = `aws cognito-idp list-users --user-pool-id=#{poolId}`
 users_response = JSON.parse(users_response_string)
@@ -35,8 +35,8 @@ users.each do |user|
   id = user['Username']
   email_attr = attributes.find {|attr| attr['Name'] == 'email'}
   email = email_attr['Value']
-  if doAll then
-    isTest = is_not_integration_user(email)
+  if !emails.empty? then
+    isTest = is_email_user(email, emails)
   else
     isTest = is_test_user(email)
   end

@@ -4,6 +4,7 @@ import sys
 import base64
 import json
 import boto3
+import getopt
 from datetime import datetime
 from pynamodb.attributes import UnicodeAttribute
 from pynamodb.indexes import GlobalSecondaryIndex, AllProjection
@@ -154,12 +155,27 @@ class ObjectVersionsModel(Model):
     object_id_one_two = UnicodeAttribute(range_key=True, null=False)
 
 
-def main():
-    # python -m scripts.cleanup_test_users
+def main(argv):
+    usage = 'python -m scripts.cleanup_test_users -e [emails_list]'
+    try:
+        opts, args = getopt.getopt(argv, 'h:e:', ['emails='])
+    except getopt.GetoptError:
+        logger.info(usage)
+        sys.exit(2)
+    emails = None
+    for opt, arg in opts:
+        if opt == '-h':
+            logger.info(usage)
+            sys.exit()
+        elif opt in ('-e', '--emails'):
+            emails = arg.split(',')
     logger.info("Starting cleanup")
-    users = UserModel.scan(filter_condition=UserModel.email.startswith("tuser"))
+    if emails is not None and len(emails) > 0:
+        users = UserModel.scan(filter_condition=UserModel.email.is_in(emails))
+    else:
+        users = UserModel.scan(filter_condition=UserModel.email.startswith("tuser"))
     for user in users:
-        if not user.email.endswith("@uclusion.com"):
+        if emails is None and not user.email.endswith("@uclusion.com"):
             continue
         logger.info(f"Processing user {user.id}")
         if user.referring_user_id is None:

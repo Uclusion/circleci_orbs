@@ -3,13 +3,14 @@ import sys
 import getopt
 import subprocess
 import os
-from utils.constants import env_to_blessed_tag_prefixes, env_to_candidate_tag_prefixes
+from utils.constants import env_to_candidate_tag_prefixes
 from github import Github
-from datetime import datetime, timezone
 from utils.git_utils import clone_latest_releases_with_prefix, get_bless_tag
+
 
 logging.basicConfig(level=logging.INFO, format='')
 logger = logging.getLogger()
+
 
 def run_tests(env_name, test_dir):
     if env_name == 'dev':
