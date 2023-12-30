@@ -170,7 +170,7 @@ def main(argv):
         elif opt in ('-e', '--emails'):
             emails = arg.split(',')
     logger.info("Starting cleanup")
-    if emails is not None and len(emails) > 0:
+    if emails is not None and len(emails) > 0 and len(emails[0]) > 0:
         has_emails = True
         users = UserModel.scan(filter_condition=UserModel.email.is_in(*emails))
     else:
