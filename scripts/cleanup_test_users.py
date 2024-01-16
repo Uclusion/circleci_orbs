@@ -126,6 +126,17 @@ class StageModel(Model):
     markets_index = MarketsIndex()
 
 
+
+class MarketIndex(GlobalSecondaryIndex):
+    class Meta:
+        region = region_name
+        host = 'https://dynamodb.us-west-2.amazonaws.com'
+        read_capacity_units = 1
+        write_capacity_units = 1
+        projection = AllProjection()
+    market_id = UnicodeAttribute(hash_key=True)
+
+
 class GroupModel(Model):
     class Meta():
         table_name = 'uclusion-markets-dev-groups'
@@ -133,7 +144,7 @@ class GroupModel(Model):
         host = 'https://dynamodb.us-west-2.amazonaws.com'
 
     id = UnicodeAttribute(hash_key=True, null=False)
-    market_index = MarketsIndex()
+    market_index = MarketIndex()
 
 
 class AuditModel(Model):
