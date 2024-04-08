@@ -166,6 +166,16 @@ class ObjectVersionsModel(Model):
     object_id_one_two = UnicodeAttribute(range_key=True, null=False)
 
 
+class AsyncNotificationsModel(Model):
+    class Meta():
+        table_name = 'uclusion-async-dev-notifications'
+        region = region_name
+        host = 'https://dynamodb.us-west-2.amazonaws.com'
+
+    market_id_user_id = UnicodeAttribute(hash_key=True, null=False)
+    type_object_id = UnicodeAttribute(range_key=True, null=False)
+
+
 def main(argv):
     usage = 'python -m scripts.cleanup_test_users -e [emails_list]'
     try:
@@ -206,6 +216,10 @@ def main(argv):
                     group.delete()
                 invoke_lambda_async('uclusion-markets-dev-markets_delete',
                                     get_machine_capability(market.id))
+                notifications = AsyncNotificationsModel.scan(
+                    filter_condition=AsyncNotificationsModel.market_id_user_id.startswith(market.id))
+                for notification in notifications:
+                    notification.delete()
             account = AccountModel(hash_key=user.account_id)
             for user_in_account in UserModel.account_index.query(account.id):
                 # Make sure all users in account deleted before delete account
