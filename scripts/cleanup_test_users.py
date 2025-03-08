@@ -174,6 +174,7 @@ class AsyncNotificationsModel(Model):
 
     market_id_user_id = UnicodeAttribute(hash_key=True, null=False)
     type_object_id = UnicodeAttribute(range_key=True, null=False)
+    external_id = UnicodeAttribute(null=False)
 
 
 def main(argv):
@@ -221,6 +222,11 @@ def main(argv):
                 for notification in notifications:
                     notification.delete()
             account = AccountModel(hash_key=user.account_id)
+            # notification delete by scan for external id - otherwise things were getting stuck
+            notifications = AsyncNotificationsModel.scan(
+                filter_condition=AsyncNotificationsModel.external_id == user.external_id)
+            for notification in notifications:
+                notification.delete()
             for user_in_account in UserModel.account_index.query(account.id):
                 # Make sure all users in account deleted before delete account
                 user_in_account.delete()
