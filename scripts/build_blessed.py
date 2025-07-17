@@ -30,7 +30,7 @@ def build_blessed(github, env_name, repo_name=None, is_ui=False, is_backend_all=
             if not is_ui else None
         release_head(github, build_tag, prebuilt_releases, repo_name, is_ui)
     else:
-        clone_latest_releases_with_prefix(github, blessed_prefix, build_tag, repo_name, is_ui)
+        clone_latest_releases_with_prefix(github, blessed_prefix, build_tag, repo_name, is_ui, True)
 
 
 def main(argv):
