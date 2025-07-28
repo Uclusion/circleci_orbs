@@ -10,33 +10,38 @@ logging.basicConfig(level=logging.INFO, format='')
 logger = logging.getLogger()
 
 
-def cleanup_releases(prefix, latest_releases):
+def cleanup_releases(latest_releases):
     for latest in latest_releases:
         repo = latest[0]
         release = latest[1]
         latest_tag = release.tag_name
         print(f'Will ignore latest {latest_tag}')
         repo_releases = repo.get_releases()
+        tags = repo.get_tags()
         for repo_release in repo_releases:
-            if repo_release.tag_name != latest_tag and repo_release.tag_name.startswith(prefix):
+            if repo_release.tag_name != latest_tag:
                 print("Deleting release " + repo_release.tag_name + " in repo " + repo.name)
                 repo_release.delete_release()
-                print("Deleting ref " + repo_release.tag_name + " in repo " + repo.name)
-                ref = repo.get_git_ref(f'tags/{repo_release.tag_name}')
-                ref.delete()
+        # Delete all tags
+        for tag in tags:
+            if tag.name == latest_tag:
+                continue
+            ref = repo.get_git_ref(f"tags/{tag.name}")
+            ref.delete()
+            print(f"Deleted tag: {tag.name}")
 
 
 def cleanup_build_releases(github, env_name, is_ui=False):
     prefix = env_to_candidate_tag_prefixes[env_name]
     if prefix:
         latest_releases = get_latest_releases_with_prefix(github, prefix, None, is_ui, True)
-        cleanup_releases(prefix, latest_releases)
+        cleanup_releases(latest_releases)
 
 
 def cleanup_bless_releases(github, env_name, is_ui=False):
     prefix = env_to_blessed_tag_prefixes[env_name]
     latest_releases = get_latest_releases_with_prefix(github, prefix, None, is_ui, True)
-    cleanup_releases(prefix, latest_releases)
+    cleanup_releases(latest_releases)
 
 
 def main(argv):
