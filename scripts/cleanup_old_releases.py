@@ -14,11 +14,16 @@ def cleanup_releases(prefix, latest_releases):
     for latest in latest_releases:
         repo = latest[0]
         release = latest[1]
+        latest_tag = release.tag_name
+        print(f'Will ignore latest {latest_tag}')
         repo_releases = repo.get_releases()
         for repo_release in repo_releases:
-            if repo_release.tag_name != release.tag_name and repo_release.tag_name.startswith(prefix):
+            if repo_release.tag_name != latest_tag and repo_release.tag_name.startswith(prefix):
                 print("Deleting release " + repo_release.tag_name + " in repo " + repo.name)
                 repo_release.delete_release()
+                print("Deleting ref " + repo_release.tag_name + " in repo " + repo.name)
+                ref = repo.get_git_ref(f'tags/{repo_release.tag_name}')
+                ref.delete()
 
 
 def cleanup_build_releases(github, env_name, is_ui=False):
