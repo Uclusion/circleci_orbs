@@ -235,6 +235,11 @@ def main(argv):
             for audit in audits:
                 logger.info(f"Processing audit for {audit.external_id}")
                 audit.delete()
+            # Clean up placeholder user audits that are left over when don't accept invite
+            audits = AuditModel.query(hash_key=user.email)
+            for audit in audits:
+                logger.info(f"Processing audit for {audit.external_id}")
+                audit.delete()
         # For referred test users still need to delete because external id will change on recreate
         capabilities = UserCapabilityModel.query(hash_key=user.id)
         for capability in capabilities:
