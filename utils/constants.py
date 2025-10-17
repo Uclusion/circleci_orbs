@@ -4,25 +4,25 @@ rest_api_backend_repos = ['uclusion_async', 'uclusion_investible_api', 'uclusion
                           'uclusion_backend_common', 'uclusion_summaries', 'common_lambda_dependencies']
 
 env_to_blessed_tag_prefixes = {
-    'dev': 'stage_blessed',
+    'development': 'stage_blessed',
     'stage': 'production_blessed',
     'production': 'production_passed'
 }
 
 env_to_buildable_tag_prefixes = {
-    'dev': 'dev_backend', #techinically this is already built, but unifies some code in printing the last blessed
+    'development': 'dev_backend', #techinically this is already built, but unifies some code in printing the last blessed
     'stage': 'stage_blessed',
     'production': 'production_blessed'
 
 }
 env_to_candidate_tag_prefixes = {
-    'dev': 'dev_backend',
+    'development': 'dev_backend',
     'stage': 'stage_backend',
     'production': 'production_backend',
 }
 
 env_to_build_tag_prefix = {
-    'dev': 'dev_backend',
+    'development': 'dev_backend',
     'stage': 'stage_backend',
     'production' : 'production_backend'
 }
