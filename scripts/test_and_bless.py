@@ -13,7 +13,7 @@ logger = logging.getLogger()
 
 
 def run_tests(env_name, test_dir):
-    if env_name == 'dev':
+    if env_name == 'development':
         test_args = ['npm', 'run-script', 'test']
     else:
         test_name = 'test' + env_name.capitalize()
