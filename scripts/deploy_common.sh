@@ -2,7 +2,6 @@
 
 ENV_NAME=$1
 GITHUB_TOKEN=$2
-LOCK_FILE=$3
 
 function build_common() {
     cd utils_repo
@@ -33,7 +32,7 @@ function build_common_dependencies() {
         git checkout $RELEASE
         PY_DIR='build/python/lib/python3.9/site-packages'
         mkdir -p $PY_DIR
-        pip install -r $LOCK_FILE -t $PY_DIR
+        pip install -r requirements.txt -t $PY_DIR
         pip freeze --path $PY_DIR > ${ENV_NAME}_requirements.txt
         ../node_modules/serverless/bin/serverless.js deploy
         cd ../utils_repo
