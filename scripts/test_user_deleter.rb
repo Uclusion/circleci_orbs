@@ -25,7 +25,7 @@ end
 
 poolId = options[:poolId]
 emails = options[:emails]
-
+puts("Listing users with #{poolId}")
 users_response_string = `aws cognito-idp list-users --user-pool-id=#{poolId}`
 users_response = JSON.parse(users_response_string)
 users = users_response['Users']
