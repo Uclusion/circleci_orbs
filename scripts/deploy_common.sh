@@ -15,6 +15,7 @@ function build_common() {
         pip install --no-deps . -t $PY_DIR
         ../../node_modules/serverless/bin/serverless.js deploy
         echo build
+        cd ..
     else
         echo skip
     fi
@@ -31,7 +32,7 @@ function build_common_dependencies() {
         pip install -r requirements.txt -t $PY_DIR
         pip freeze --path $PY_DIR > ${ENV_NAME}_requirements.txt
         ../../node_modules/serverless/bin/serverless.js deploy
-        cd ../utils_repo
+        cd ..
         python -m utils.github_update_file -f ~/common_lambda_dependencies/${ENV_NAME}_requirements.txt -i ${ENV_NAME}_requirements.txt -r common_lambda_dependencies -a ${GITHUB_TOKEN}
         echo build
     else
