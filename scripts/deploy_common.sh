@@ -7,14 +7,13 @@ function build_common() {
     local REPO_NAME=$1
     RELEASE=`python -m scripts.print_release_build_needed -e $ENV_NAME -a $GITHUB_TOKEN -r $REPO_NAME`
     if [[ "$RELEASE" != "skip" ]]; then
-        cd ..
-        git clone git@github.com:Uclusion/$REPO_NAME.git
+        git clone https://disrael:$GITHUB_TOKEN@Uclusion/$REPO_NAME.git
         cd $REPO_NAME
         git checkout $RELEASE
         PY_DIR='build/python/lib/python3.9/site-packages'
         mkdir -p $PY_DIR
         pip install --no-deps . -t $PY_DIR
-        ../node_modules/serverless/bin/serverless.js deploy
+        ../../node_modules/serverless/bin/serverless.js deploy
         echo build
     else
         echo skip
@@ -24,14 +23,14 @@ function build_common() {
 function build_common_dependencies() {
     RELEASE=`python -m scripts.print_release_build_needed -e $ENV_NAME -a $GITHUB_TOKEN -r common_lambda_dependencies`
     if [[ "$RELEASE" != "skip" ]]; then
-        git clone git@github.com:Uclusion/common_lambda_dependencies.git
+        git clone https://disrael:$GITHUB_TOKEN@Uclusion/common_lambda_dependencies.git
         cd common_lambda_dependencies
         git checkout $RELEASE
         PY_DIR='build/python/lib/python3.9/site-packages'
         mkdir -p $PY_DIR
         pip install -r requirements.txt -t $PY_DIR
         pip freeze --path $PY_DIR > ${ENV_NAME}_requirements.txt
-        ../node_modules/serverless/bin/serverless.js deploy
+        ../../node_modules/serverless/bin/serverless.js deploy
         cd ../utils_repo
         python -m utils.github_update_file -f ~/common_lambda_dependencies/${ENV_NAME}_requirements.txt -i ${ENV_NAME}_requirements.txt -r common_lambda_dependencies -a ${GITHUB_TOKEN}
         echo build
