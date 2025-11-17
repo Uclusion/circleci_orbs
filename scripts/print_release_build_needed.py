@@ -26,7 +26,7 @@ def print_release(github, env_name, repo_name):
     if release_tag.commit.sha == latest:
         print("skip")
     else:
-        if env_name == 'dev':
+        if env_name == 'development':
             print('master')
         else:
             print(release.tag_name)
