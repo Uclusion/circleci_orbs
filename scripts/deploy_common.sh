@@ -4,7 +4,6 @@ ENV_NAME=$1
 GITHUB_TOKEN=$2
 
 function build_common() {
-    cd utils_repo
     local REPO_NAME=$1
     RELEASE=`python -m scripts.print_release_build_needed -e $ENV_NAME -a $GITHUB_TOKEN -r $REPO_NAME`
     if [[ "$RELEASE" != "skip" ]]; then
@@ -20,11 +19,9 @@ function build_common() {
     else
         echo skip
     fi
-    cd ..
 }
 
 function build_common_dependencies() {
-    cd utils_repo
     RELEASE=`python -m scripts.print_release_build_needed -e $ENV_NAME -a $GITHUB_TOKEN -r common_lambda_dependencies`
     if [[ "$RELEASE" != "skip" ]]; then
         git clone git@github.com:Uclusion/common_lambda_dependencies.git
@@ -41,13 +38,10 @@ function build_common_dependencies() {
     else
         echo skip
     fi
-    cd ..
 }
 
 function update_layers() {
-    cd utils_repo
     python -m scripts.build_blessed -e $ENV_NAME -a $GITHUB_TOKEN -b true
-    cd ..
 }
 
 BACKEND_COMMON=$(build_common "uclusion_backend_common")
