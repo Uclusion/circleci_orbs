@@ -7,7 +7,7 @@ function build_common() {
     local REPO_NAME=$1
     RELEASE=`python -m scripts.print_release_build_needed -e $ENV_NAME -a $GITHUB_TOKEN -r $REPO_NAME`
     if [[ "$RELEASE" != "skip" ]]; then
-        git clone https://disrael:$GITHUB_TOKEN@Uclusion/$REPO_NAME.git
+        git clone https://disrael:$GITHUB_TOKEN@github.com/Uclusion/$REPO_NAME.git
         cd $REPO_NAME
         git checkout $RELEASE
         PY_DIR='build/python/lib/python3.9/site-packages'
@@ -24,7 +24,7 @@ function build_common() {
 function build_common_dependencies() {
     RELEASE=`python -m scripts.print_release_build_needed -e $ENV_NAME -a $GITHUB_TOKEN -r common_lambda_dependencies`
     if [[ "$RELEASE" != "skip" ]]; then
-        git clone https://disrael:$GITHUB_TOKEN@Uclusion/common_lambda_dependencies.git
+        git clone https://disrael:$GITHUB_TOKEN@github.com/Uclusion/common_lambda_dependencies.git
         cd common_lambda_dependencies
         git checkout $RELEASE
         PY_DIR='build/python/lib/python3.9/site-packages'
