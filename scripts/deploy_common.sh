@@ -10,7 +10,7 @@ function build_common() {
         git clone https://disrael:$GITHUB_TOKEN@github.com/Uclusion/$REPO_NAME.git
         cd $REPO_NAME
         git checkout $RELEASE
-        PY_DIR='build/python/lib/python3.9/site-packages'
+        PY_DIR='build/python/lib/python3.10/site-packages'
         mkdir -p $PY_DIR
         pip install --no-deps . -t $PY_DIR
         ../../node_modules/serverless/bin/serverless.js deploy
@@ -27,7 +27,7 @@ function build_common_dependencies() {
         git clone https://disrael:$GITHUB_TOKEN@github.com/Uclusion/common_lambda_dependencies.git
         cd common_lambda_dependencies
         git checkout $RELEASE
-        PY_DIR='build/python/lib/python3.9/site-packages'
+        PY_DIR='build/python/lib/python3.10/site-packages'
         mkdir -p $PY_DIR
         pip install -r requirements.txt -t $PY_DIR
         pip freeze --path $PY_DIR > ${ENV_NAME}_requirements.txt
