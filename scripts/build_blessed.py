@@ -24,7 +24,7 @@ def build_blessed(github, env_name, repo_name=None, is_ui=False, is_backend_all=
     blessed_prefix = env_to_buildable_tag_prefixes[env_name]
     # dev does not build off of a blessed previous release
     # it builds off of head
-    if not is_backend_all and (env_name == 'dev' or (env_name == 'stage' and is_ui)):
+    if not is_backend_all and (env_name == 'development' or (env_name == 'stage' and is_ui)):
         # For UI we are specifically told to build so not much point in checking old releases for duplicate
         prebuilt_releases = get_latest_releases_with_prefix(github, blessed_prefix, repo_name, is_ui) \
             if not is_ui else None
