@@ -11,9 +11,13 @@ logger = logging.getLogger()
 def create_release(app_version, requires_cache_clear, requires_script_reinstall):
     # Just bump everyone up
     groups = DeploymentGroupVersionModel.scan()
-    actions=[DeploymentGroupVersionModel.app_version.set(app_version),
-             DeploymentGroupVersionModel.requires_cache_clear.set(requires_cache_clear),
-             DeploymentGroupVersionModel.requires_script_reinstall.set(requires_script_reinstall)]
+    actions=[DeploymentGroupVersionModel.app_version.set(app_version)]
+    # J-all-314 stamp the version that last required each action and leave it in place on
+    # later releases so users who skip this release still get notified when they return
+    if requires_cache_clear:
+        actions.append(DeploymentGroupVersionModel.cache_clear_version.set(app_version))
+    if requires_script_reinstall:
+        actions.append(DeploymentGroupVersionModel.script_reinstall_version.set(app_version))
     for group in groups:
         group.update(actions=actions)
 
