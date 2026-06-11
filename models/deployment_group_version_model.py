@@ -11,4 +11,5 @@ class DeploymentGroupVersionModel(Model):
     deployment_group = UnicodeAttribute(hash_key=True, null=False)
     ui_url = UnicodeAttribute(null=False)
     requires_cache_clear = BooleanAttribute(default=False)
+    requires_script_reinstall = BooleanAttribute(default=False)
     app_version = UnicodeAttribute(null=False)

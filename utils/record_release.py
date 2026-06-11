@@ -8,26 +8,28 @@ logging.basicConfig(level=logging.INFO, format='')
 logger = logging.getLogger()
 
 
-def create_release(app_version, requires_cache_clear):
+def create_release(app_version, requires_cache_clear, requires_script_reinstall):
     # Just bump everyone up
     groups = DeploymentGroupVersionModel.scan()
     actions=[DeploymentGroupVersionModel.app_version.set(app_version),
-             DeploymentGroupVersionModel.requires_cache_clear.set(requires_cache_clear)]
+             DeploymentGroupVersionModel.requires_cache_clear.set(requires_cache_clear),
+             DeploymentGroupVersionModel.requires_script_reinstall.set(requires_script_reinstall)]
     for group in groups:
         group.update(actions=actions)
 
 
-usage = 'python -m utils.record_release -e env_name -t tag_name -r repo_name [-a app_version -c requires_cache_clear]'
+usage = 'python -m utils.record_release -e env_name -t tag_name -r repo_name [-a app_version -c requires_cache_clear -s requires_script_reinstall]'
 
 
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv, 'h:a:c:', ['version=', 'cache='])
+        opts, args = getopt.getopt(argv, 'h:a:c:s:', ['version=', 'cache=', 'script='])
     except getopt.GetoptError:
         logger.info(usage)
         sys.exit(2)
     app_version = None
     requires_cache_clear = False
+    requires_script_reinstall = False
     for opt, arg in opts:
         if opt == '-h':
             logger.info(usage)
@@ -36,8 +38,10 @@ def main(argv):
             app_version = arg
         elif opt in ('-c', '--cache'):
             requires_cache_clear = arg.lower() == 'true'
+        elif opt in ('-s', '--script'):
+            requires_script_reinstall = arg.lower() == 'true'
     if app_version is not None:
-        create_release(app_version, requires_cache_clear)
+        create_release(app_version, requires_cache_clear, requires_script_reinstall)
 
 
 if __name__ == "__main__":
