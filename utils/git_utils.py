@@ -77,24 +77,32 @@ def get_latest_releases_with_prefix(github, prefix, repo_name=None, is_ui=False,
     return candidates
 
 
-def get_tag_for_release(repo, release):
-    for candidate in repo.get_tags():
-        if candidate.name == release.tag_name:
-            return candidate
-    return None
+def get_commit_sha_for_release(repo, release):
+    # Look the tag up directly by name rather than paginating through every tag
+    # in the repo. These release-heavy repos accumulate huge tag lists (the
+    # "jumbo search" the rest of this module already works to avoid), and that
+    # full enumeration is what was failing.
+    try:
+        ref = repo.get_git_ref(f"tags/{release.tag_name}")
+    except UnknownObjectException:
+        return None
+    obj = ref.object
+    if obj.type == 'tag':
+        # annotated tag - dereference to the commit it points at
+        return repo.get_git_tag(obj.sha).object.sha
+    return obj.sha
 
 
-def get_tag_for_release_by_repo_name(github, repo_name, release):
+def get_commit_sha_for_release_by_repo_name(github, repo_name, release):
     repo = github.get_repo(f"Uclusion/{repo_name}")
-    return get_tag_for_release(repo, release)
+    return get_commit_sha_for_release(repo, release)
 
 
 def clone_release(repo, old_release, new_name):
-    # get the tag for the release
-    tag = get_tag_for_release(repo, old_release)
-    if not tag:
+    # get the commit the release's tag points at
+    sha = get_commit_sha_for_release(repo, old_release)
+    if not sha:
         sys.exit(4)
-    sha = tag.commit.sha
     repo.create_git_tag_and_release(new_name, 'Blessed build tag', new_name, 'Blessed', sha, 'commit')
 
 
@@ -110,9 +118,9 @@ def release_head(github, dest_tag_name, prebuilt_releases, repo_name=None, is_ui
         for entry in prebuilt_releases:
             repo = entry[0]
             release = entry[1]
-            tag = get_tag_for_release(repo, release)
-            if tag:
-                sha_map[repo.name] = tag.commit.sha
+            sha = get_commit_sha_for_release(repo, release)
+            if sha:
+                sha_map[repo.name] = sha
 
     if repo_name:
         repos_to_search = [repo_name]
