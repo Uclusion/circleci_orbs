@@ -2,7 +2,7 @@ import logging
 import sys
 import getopt
 from utils.constants import env_to_blessed_tag_prefixes, env_to_candidate_tag_prefixes
-from github import Github
+from github import Auth, Github
 from utils.git_utils import get_latest_releases_with_prefix
 
 
@@ -65,7 +65,7 @@ def main(argv):
         logger.info(usage)
         sys.exit(2)
     logger.info("Using token")
-    github = Github(github_token)
+    github = Github(auth=Auth.Token(github_token))
     logger.info("Starting cleanup")
     cleanup_build_releases(github, env_name, True)
     cleanup_bless_releases(github, env_name, True)

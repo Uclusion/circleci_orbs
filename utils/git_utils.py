@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from github import UnknownObjectException
+from github import GithubException, UnknownObjectException
 
 from utils.constants import rest_api_backend_repos, env_to_blessed_tag_prefixes
 import sys
@@ -98,12 +98,41 @@ def get_commit_sha_for_release_by_repo_name(github, repo_name, release):
     return get_commit_sha_for_release(repo, release)
 
 
+def is_already_exists_error(e):
+    if e.status != 422:
+        return False
+    data = e.data if isinstance(e.data, dict) else {}
+    if 'already exists' in str(data.get('message', '')).lower():
+        return True
+    errors = data.get('errors') or []
+    return any(isinstance(err, dict) and err.get('code') == 'already_exists' for err in errors)
+
+
+def create_tag_and_release(repo, tag_name, tag_message, release_message, sha):
+    # The default GithubRetry replays POSTs on transient 5xx responses, so a
+    # create that succeeded server-side can come back as 422 already_exists on
+    # the replay. Tag names are unique per run, so "already exists" means our
+    # own create landed - just make sure the release itself is there.
+    try:
+        repo.create_git_tag_and_release(tag_name, tag_message, tag_name, release_message, sha, 'commit')
+        return
+    except GithubException as e:
+        if not is_already_exists_error(e):
+            raise
+    try:
+        repo.get_release(tag_name)
+        print("Release " + tag_name + " already exists in " + repo.name + " - continuing")
+    except UnknownObjectException:
+        # only the tag ref made it - the release still needs creating
+        repo.create_git_release(tag_name, tag_name, release_message)
+
+
 def clone_release(repo, old_release, new_name):
     # get the commit the release's tag points at
     sha = get_commit_sha_for_release(repo, old_release)
     if not sha:
         sys.exit(4)
-    repo.create_git_tag_and_release(new_name, 'Blessed build tag', new_name, 'Blessed', sha, 'commit')
+    create_tag_and_release(repo, new_name, 'Blessed build tag', 'Blessed', sha)
 
 
 def get_master_sha(github, repo_name):
@@ -136,7 +165,7 @@ def release_head(github, dest_tag_name, prebuilt_releases, repo_name=None, is_ui
             continue
         sha = head.object.sha
         if sha != sha_map.get(repo.name):
-            repo.create_git_tag_and_release(dest_tag_name, 'Head Build', dest_tag_name, 'Head', sha, 'commit')
+            create_tag_and_release(repo, dest_tag_name, 'Head Build', 'Head', sha)
 
 
 def clone_latest_releases_with_prefix(github, source_prefix, dest_tag_name, repo_name=None, is_ui=False, output_intermediate=False):

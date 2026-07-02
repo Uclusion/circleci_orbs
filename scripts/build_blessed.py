@@ -2,7 +2,7 @@ import logging
 import sys
 import getopt
 from utils.constants import env_to_build_tag_prefix, env_to_buildable_tag_prefixes
-from github import Github
+from github import Auth, Github
 from datetime import datetime, timezone
 from utils.git_utils import clone_latest_releases_with_prefix, release_head, get_latest_releases_with_prefix
 
@@ -65,7 +65,7 @@ def main(argv):
         sys.exit(2)
 
     logger.info("Using token")
-    github = Github(github_token)
+    github = Github(auth=Auth.Token(github_token))
     logger.info("Starting build blessed")
     build_blessed(github, env_name, repo_name, is_ui, is_backend_all)
 

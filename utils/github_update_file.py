@@ -2,7 +2,7 @@ import base64
 import sys
 import getopt
 import logging
-from github import Github
+from github import Auth, Github
 
 logging.basicConfig(level=logging.INFO, format='')
 logger = logging.getLogger()
@@ -36,7 +36,7 @@ def main(argv):
     if github_token is None or repo is None or file is None or repo_file is None:
         logger.error(usage)
         sys.exit(2)
-    g = Github(github_token)
+    g = Github(auth=Auth.Token(github_token))
     repo = f"Uclusion/{repo}"
     repo = g.get_repo(repo, lazy=False)
     # https://pygithub.readthedocs.io/en/latest/examples/Repository.html#update-a-file-in-the-repository

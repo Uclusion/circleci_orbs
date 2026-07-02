@@ -2,7 +2,7 @@ import logging
 import sys
 import getopt
 from utils.constants import env_to_buildable_tag_prefixes, env_to_build_tag_prefix
-from github import Github
+from github import Auth, Github
 from utils.git_utils import get_latest_releases_with_prefix, get_master_sha, get_commit_sha_for_release_by_repo_name
 
 logging.basicConfig(level=logging.INFO, format='')
@@ -56,7 +56,7 @@ def main(argv):
         logger.info(usage)
         sys.exit(2)
 
-    github = Github(github_token)
+    github = Github(auth=Auth.Token(github_token))
     print_release(github, env_name, repo_name)
 
 

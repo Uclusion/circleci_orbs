@@ -4,7 +4,7 @@ import getopt
 import subprocess
 import os
 from utils.constants import env_to_candidate_tag_prefixes
-from github import Github
+from github import Auth, Github
 from utils.git_utils import clone_latest_releases_with_prefix, get_bless_tag
 
 
@@ -70,7 +70,7 @@ def main(argv):
             sys.exit(2)
         run_tests(env_name, test_dir)
     logger.info("Using token")
-    github = Github(github_token)
+    github = Github(auth=Auth.Token(github_token))
     logger.info("Starting build blessed")
     clones = bless_build(github, env_name, is_ui)
     for clone in clones:
