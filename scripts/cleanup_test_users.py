@@ -1,53 +1,58 @@
 import logging
 import os
 import sys
-import base64
-import json
 import boto3
 import getopt
-from datetime import datetime
-from pynamodb.attributes import UnicodeAttribute
+from botocore.config import Config
+from pynamodb.attributes import (
+    ListAttribute,
+    UnicodeAttribute,
+    VersionAttribute
+)
+from pynamodb.exceptions import DoesNotExist
 from pynamodb.indexes import GlobalSecondaryIndex, AllProjection
 from pynamodb.models import Model
+from scripts.cleanup_test_users_utils import (
+    assert_no_markets_outside_root_closure,
+    classify_external_market_ids,
+    collect_user_capabilities,
+    get_account_cleanup_policy,
+    get_descendant_market_ids,
+    get_capability_keys_for_market_ids,
+    get_external_identity_users,
+    get_existing_support_market_ids,
+    get_resource_environment,
+    group_capability_keys_by_market_id,
+    invoke_market_delete as invoke_market_delete_with_client,
+    invoke_request_response,
+    is_market_delete_eligible,
+    recover_orphan_capabilities,
+    select_cleanup_users,
+    should_delete_user_audits,
+    wait_for_downstream_cleanup
+)
 
 
 env_name = os.environ['ENV_NAME']
+resource_env_name = get_resource_environment(env_name)
 logging.basicConfig(level=logging.INFO, format='')
 logger = logging.getLogger()
 region_name = 'us-west-2'
-client = boto3.client('lambda', region_name=region_name)
+client = boto3.client(
+    'lambda',
+    region_name=region_name,
+    config=Config(
+        read_timeout=210,
+        retries={'total_max_attempts': 1, 'mode': 'standard'}
+    )
+)
 
 
-class ModelEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if hasattr(obj, 'attribute_values'):
-            return obj.attribute_values
-        elif isinstance(obj, datetime):
-            return obj.isoformat()
-        elif isinstance(obj, set):
-            return list(obj)
-        return json.JSONEncoder.default(self, obj)
-
-
-def json_dumps(obj):
-    return json.dumps(obj, cls=ModelEncoder)
-
-
-def encode_context(capability):
-    custom_context = {"custom": {"capability": capability}}
-    context = json_dumps(custom_context)
-    return base64.b64encode(context.encode()).decode('utf-8')
-
-
-def invoke_lambda_async(function_name, capability):
-    # https://github.com/aws/aws-sdk-js/issues/1388 - no ClientContext when async
-    payload = {
-        'capability': capability
-    }
-    client.invoke(
-        FunctionName=function_name,
-        InvocationType='Event',
-        Payload=json.dumps(payload)
+def invoke_market_delete(function_name, capability):
+    return invoke_market_delete_with_client(
+        client,
+        function_name,
+        capability
     )
 
 
@@ -67,7 +72,7 @@ class AccountIndex(GlobalSecondaryIndex):
 
 class UserModel(Model):
     class Meta():
-        table_name = 'uclusion-users-dev-users'
+        table_name = f'uclusion-users-{resource_env_name}-users'
         region = region_name
         host = 'https://dynamodb.us-west-2.amazonaws.com'
 
@@ -81,75 +86,47 @@ class UserModel(Model):
 
 class AccountModel(Model):
     class Meta():
-        table_name = 'uclusion-users-dev-accounts'
+        table_name = f'uclusion-users-{resource_env_name}-accounts'
         region = region_name
         host = 'https://dynamodb.us-west-2.amazonaws.com'
 
     id = UnicodeAttribute(hash_key=True, null=False)
+    billing_promotions = ListAttribute(null=False)
+    version = VersionAttribute()
 
 
 class UserCapabilityModel(Model):
     class Meta():
-        table_name = 'uclusion-users-dev-users-capabilities'
+        table_name = (
+            f'uclusion-users-{resource_env_name}-users-capabilities'
+        )
         region = region_name
         host = 'https://dynamodb.us-west-2.amazonaws.com'
     user_id = UnicodeAttribute(hash_key=True, null=False)
     type_object_id = UnicodeAttribute(range_key=True, null=False)
+    market_id = UnicodeAttribute(null=True)
+    type = UnicodeAttribute(null=True)
 
 
 class MarketModel(Model):
     class Meta():
-        table_name = 'uclusion-markets-dev-markets'
+        table_name = f'uclusion-markets-{resource_env_name}-markets'
         region = region_name
         host = 'https://dynamodb.us-west-2.amazonaws.com'
     id = UnicodeAttribute(hash_key=True, null=False)
     account_id = UnicodeAttribute(null=False)
-
-
-class MarketsIndex(GlobalSecondaryIndex):
-    class Meta:
-        region = region_name
-        host = 'https://dynamodb.us-west-2.amazonaws.com'
-        read_capacity_units = 1
-        write_capacity_units = 1
-        projection = AllProjection()
-    market_id = UnicodeAttribute(hash_key=True)
-
-
-class StageModel(Model):
-    class Meta():
-        table_name = 'uclusion-markets-dev-stages'
-        region = region_name
-        host = 'https://dynamodb.us-west-2.amazonaws.com'
-    id = UnicodeAttribute(hash_key=True, null=False)
-    market_id = UnicodeAttribute(null=False)
-    markets_index = MarketsIndex()
-
-
-
-class MarketIndex(GlobalSecondaryIndex):
-    class Meta:
-        region = region_name
-        host = 'https://dynamodb.us-west-2.amazonaws.com'
-        read_capacity_units = 1
-        write_capacity_units = 1
-        projection = AllProjection()
-    market_id = UnicodeAttribute(hash_key=True)
-
-
-class GroupModel(Model):
-    class Meta():
-        table_name = 'uclusion-markets-dev-groups'
-        region = region_name
-        host = 'https://dynamodb.us-west-2.amazonaws.com'
-
-    id = UnicodeAttribute(hash_key=True, null=False)
-    market_index = MarketIndex()
+    parent_comment_id = UnicodeAttribute(null=True)
+    parent_comment_market_id = UnicodeAttribute(null=True)
+    market_type = UnicodeAttribute(null=True)
+    market_sub_type = UnicodeAttribute(null=True)
+    object_type = UnicodeAttribute(null=True)
 
 
 class AuditModel(Model):
     class Meta():
-        table_name = 'uclusion-summaries-dev-external-audit'
+        table_name = (
+            f'uclusion-summaries-{resource_env_name}-external-audit'
+        )
         region = region_name
         host = 'https://dynamodb.us-west-2.amazonaws.com'
     external_id = UnicodeAttribute(hash_key=True, null=False)
@@ -158,7 +135,9 @@ class AuditModel(Model):
 
 class ObjectVersionsModel(Model):
     class Meta():
-        table_name = 'uclusion-summaries-dev-object-versions'
+        table_name = (
+            f'uclusion-summaries-{resource_env_name}-object-versions'
+        )
         region = region_name
         host = 'https://dynamodb.us-west-2.amazonaws.com'
 
@@ -168,7 +147,7 @@ class ObjectVersionsModel(Model):
 
 class AsyncNotificationsModel(Model):
     class Meta():
-        table_name = 'uclusion-async-dev-notifications'
+        table_name = f'uclusion-async-{resource_env_name}-notifications'
         region = region_name
         host = 'https://dynamodb.us-west-2.amazonaws.com'
 
@@ -177,20 +156,93 @@ class AsyncNotificationsModel(Model):
     external_id = UnicodeAttribute(null=False)
 
 
+def get_cleanup_remainders(market_ids, capability_keys):
+    remaining_versions = []
+    for market_id in market_ids:
+        versions = ObjectVersionsModel.query(
+            market_id,
+            consistent_read=True,
+            limit=1
+        )
+        if next(iter(versions), None) is not None:
+            remaining_versions.append(market_id)
+
+    remaining_capabilities = []
+    for user_id, type_object_id in capability_keys:
+        try:
+            UserCapabilityModel.get(
+                user_id,
+                type_object_id,
+                consistent_read=True
+            )
+            remaining_capabilities.append((user_id, type_object_id))
+        except DoesNotExist:
+            pass
+    return remaining_versions, remaining_capabilities
+
+
+def invoke_users_capability_cleanup(payload):
+    return invoke_request_response(
+        client,
+        f'uclusion-users-{resource_env_name}-users_batch_delete',
+        payload
+    )
+
+
+def wait_for_cleanup(market_ids, capability_keys):
+    wait_for_downstream_cleanup(
+        market_ids,
+        capability_keys,
+        get_remainders=get_cleanup_remainders
+    )
+
+
+def delete_account_user(user, delete_audits):
+    capabilities = UserCapabilityModel.query(
+        hash_key=user.id,
+        consistent_read=True
+    )
+    for capability in capabilities:
+        logger.info(
+            f"Processing capability {capability.type_object_id}"
+        )
+        capability.delete()
+    if delete_audits:
+        for external_id in filter(None, {user.external_id, user.email}):
+            audits = AuditModel.query(
+                hash_key=external_id,
+                consistent_read=True
+            )
+            for audit in audits:
+                logger.info(f"Processing audit for {audit.external_id}")
+                audit.delete()
+    user.delete()
+
+
 def main(argv):
-    usage = 'python -m scripts.cleanup_test_users -e [emails_list]'
+    usage = (
+        'python -m scripts.cleanup_test_users '
+        '[-e emails_list] [--preserve-primary]'
+    )
     try:
-        opts, args = getopt.getopt(argv, 'h:e:', ['emails='])
+        opts, args = getopt.getopt(
+            argv,
+            'h:e:',
+            ['emails=', 'preserve-primary']
+        )
     except getopt.GetoptError:
         logger.info(usage)
         sys.exit(2)
     emails = None
+    preserve_primary = False
     for opt, arg in opts:
         if opt == '-h':
             logger.info(usage)
             sys.exit()
         elif opt in ('-e', '--emails'):
             emails = arg.split(',')
+        elif opt == '--preserve-primary':
+            preserve_primary = True
     logger.info("Starting cleanup")
     if emails is not None and len(emails) > 0 and len(emails[0]) > 0:
         has_emails = True
@@ -198,48 +250,216 @@ def main(argv):
     else:
         has_emails = False
         users = UserModel.scan(filter_condition=UserModel.email.startswith("tuser"))
+    users = [
+        user for user in users
+        if has_emails or user.email.endswith("@uclusion.com")
+    ]
+    # Preserve-primary mode must never treat matching referred copies in
+    # support/customer accounts as cleanup roots.
+    users = select_cleanup_users(users, preserve_primary)
+    processed_accounts = set()
     for user in users:
-        if not has_emails and not user.email.endswith("@uclusion.com"):
+        if user.account_id in processed_accounts:
             continue
         logger.info(f"Processing user {user.id} with {user.email}")
         if user.referring_user_id is None:
             # Only primary users own markets, accounts, and audits
-            markets = MarketModel.scan(filter_condition=MarketModel.account_id == user.account_id)
-            for market in markets:
-                logger.info(f"Processing market {market.id}")
-                stages = StageModel.markets_index.query(hash_key=market.id)
-                for stage in stages:
-                    logger.info(f"Processing stage {stage.id}")
-                    stage.delete()
-                groups = GroupModel.market_index.query(hash_key=market.id)
-                for group in groups:
-                    logger.info(f"Processing group {group.id}")
-                    group.delete()
-                invoke_lambda_async('uclusion-markets-dev-markets_delete',
-                                    get_machine_capability(market.id))
+            all_markets = list(MarketModel.scan(consistent_read=True))
+            markets = [
+                market for market in all_markets
+                if market.account_id == user.account_id
+            ]
+            top_level_markets = [
+                market for market in markets
+                if market.parent_comment_id is None
+                and market.parent_comment_market_id is None
+            ]
+            ineligible_roots = [
+                market.id for market in top_level_markets
+                if not is_market_delete_eligible(market)
+            ]
+            if ineligible_roots:
+                raise RuntimeError(
+                    'Refusing identity cleanup while unmarked top-level '
+                    f'markets remain: {ineligible_roots}'
+                )
+
+            owned_root_market_ids = [
+                market.id for market in top_level_markets
+            ]
+            owned_market_ids = get_descendant_market_ids(
+                owned_root_market_ids,
+                all_markets
+            )
+            assert_no_markets_outside_root_closure(
+                markets,
+                owned_market_ids
+            )
+            account_users = list(UserModel.scan(
+                filter_condition=UserModel.account_id == user.account_id,
+                consistent_read=True
+            ))
+            identity_users = list(UserModel.query(
+                hash_key=user.external_id,
+                consistent_read=True
+            ))
+            external_identity_users = get_external_identity_users(
+                account_users,
+                identity_users
+            )
+            home_account_capabilities = collect_user_capabilities(
+                account_users,
+                lambda capability_user: UserCapabilityModel.query(
+                    capability_user.id,
+                    consistent_read=True
+                )
+            )
+            identity_capabilities = collect_user_capabilities(
+                external_identity_users,
+                lambda capability_user: UserCapabilityModel.query(
+                    capability_user.id,
+                    consistent_read=True
+                )
+            )
+            home_capability_keys_by_market_id = (
+                group_capability_keys_by_market_id(
+                    home_account_capabilities
+                )
+            )
+            identity_capability_keys_by_market_id = (
+                group_capability_keys_by_market_id(
+                    identity_capabilities
+                )
+            )
+            capability_keys_by_market_id = (
+                group_capability_keys_by_market_id(
+                    home_account_capabilities
+                    + identity_capabilities
+                )
+            )
+            home_external_market_ids = (
+                set(home_capability_keys_by_market_id)
+                - set(owned_market_ids)
+            )
+            (
+                cleanup_support_root_ids,
+                _preserved_support_ids,
+                orphan_market_ids
+            ) = classify_external_market_ids(
+                home_external_market_ids,
+                all_markets
+            )
+            identity_external_market_ids = (
+                set(identity_capability_keys_by_market_id)
+                - set(owned_market_ids)
+            )
+            identity_support_market_ids = (
+                get_existing_support_market_ids(
+                    identity_external_market_ids,
+                    all_markets
+                )
+            )
+            (
+                identity_cleanup_support_root_ids,
+                _identity_preserved_support_ids,
+                _identity_orphan_market_ids
+            ) = classify_external_market_ids(
+                identity_support_market_ids,
+                all_markets
+            )
+            cleanup_support_root_ids.update(
+                identity_cleanup_support_root_ids
+            )
+            cleanup_support_market_ids = get_descendant_market_ids(
+                cleanup_support_root_ids,
+                all_markets
+            )
+            cleanup_market_ids = (
+                set(owned_market_ids)
+                | cleanup_support_market_ids
+            )
+            cleanup_capability_keys = (
+                get_capability_keys_for_market_ids(
+                    capability_keys_by_market_id,
+                    cleanup_market_ids
+                )
+            )
+            orphan_capability_keys = (
+                get_capability_keys_for_market_ids(
+                    home_capability_keys_by_market_id,
+                    orphan_market_ids
+                )
+            )
+            recover_orphan_capabilities(
+                orphan_market_ids,
+                orphan_capability_keys,
+                wait_for_cleanup,
+                invoke_users_capability_cleanup
+            )
+
+            root_market_ids = list(dict.fromkeys(
+                owned_root_market_ids
+                + sorted(cleanup_support_root_ids)
+            ))
+            for market_id in root_market_ids:
+                logger.info(f"Processing market {market_id}")
+                # markets_delete owns the complete, recursive market-data
+                # cascade. Keep identity/account cleanup below separate.
+                invoke_market_delete(
+                    (
+                        f'uclusion-markets-{resource_env_name}'
+                        '-markets_delete'
+                    ),
+                    get_machine_capability(market_id)
+                )
+            # Market rows disappear before their DynamoDB stream consumers
+            # finish notification, audit, version, and capability cleanup.
+            # Do not remove the identities those consumers need until both
+            # downstream tables confirm completion.
+            wait_for_downstream_cleanup(
+                cleanup_market_ids,
+                cleanup_capability_keys,
+                get_remainders=get_cleanup_remainders
+            )
+            account = AccountModel.get(
+                hash_key=user.account_id,
+                consistent_read=True
+            )
+            cleanup_policy = get_account_cleanup_policy(
+                account_users,
+                preserve_primary
+            )
+            if cleanup_policy['clear_promotions']:
+                account.update([
+                    AccountModel.billing_promotions.set([])
+                ])
+            # notification delete by scan for external id - otherwise things were getting stuck
+            if cleanup_policy['delete_notifications']:
                 notifications = AsyncNotificationsModel.scan(
-                    filter_condition=AsyncNotificationsModel.market_id_user_id.startswith(market.id))
+                    filter_condition=(
+                        AsyncNotificationsModel.external_id
+                        == user.external_id
+                    )
+                )
                 for notification in notifications:
                     notification.delete()
-            account = AccountModel(hash_key=user.account_id)
-            # notification delete by scan for external id - otherwise things were getting stuck
-            notifications = AsyncNotificationsModel.scan(
-                filter_condition=AsyncNotificationsModel.external_id == user.external_id)
-            for notification in notifications:
-                notification.delete()
-            for user_in_account in UserModel.account_index.query(account.id):
-                # Make sure all users in account deleted before delete account
-                user_in_account.delete()
-            account.delete()
-            audits = AuditModel.query(hash_key=user.external_id)
-            for audit in audits:
-                logger.info(f"Processing audit for {audit.external_id}")
-                audit.delete()
-            # Clean up placeholder user audits that are left over when don't accept invite
-            audits = AuditModel.query(hash_key=user.email)
-            for audit in audits:
-                logger.info(f"Processing audit for {audit.external_id}")
-                audit.delete()
+            for user_in_account in cleanup_policy['users_to_delete']:
+                # The downstream barrier guarantees all market capabilities
+                # are gone. Remove every remaining account/group capability
+                # before its owning identity, including users not selected by
+                # the outer email scan.
+                delete_account_user(
+                    user_in_account,
+                    delete_audits=should_delete_user_audits(
+                        user_in_account,
+                        user,
+                        preserve_primary
+                    )
+                )
+            if cleanup_policy['delete_account']:
+                account.delete()
+            processed_accounts.add(user.account_id)
+            continue
         # For referred test users still need to delete because external id will change on recreate
         capabilities = UserCapabilityModel.query(hash_key=user.id)
         for capability in capabilities:

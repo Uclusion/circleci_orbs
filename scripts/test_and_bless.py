@@ -5,6 +5,7 @@ import subprocess
 import os
 from utils.constants import env_to_candidate_tag_prefixes
 from github import Auth, Github
+from scripts.test_and_bless_utils import get_test_script
 from utils.git_utils import clone_latest_releases_with_prefix, get_bless_tag
 
 
@@ -13,11 +14,7 @@ logger = logging.getLogger()
 
 
 def run_tests(env_name, test_dir):
-    if env_name == 'development':
-        test_args = ['npm', 'run-script', 'test']
-    else:
-        test_name = 'test' + env_name.capitalize()
-        test_args = ['npm', 'run-script', test_name]
+    test_args = ['npm', 'run-script', get_test_script(env_name)]
     print(test_dir)
     subprocess.run(test_args, cwd=test_dir, check=True)
 
