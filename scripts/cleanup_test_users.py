@@ -347,6 +347,19 @@ def main(argv):
                 markets,
                 owned_market_ids
             )
+            if preserve_primary and not owned_root_market_ids:
+                # Historical fixed-email accounts own no live markets;
+                # their residue is deferred. Skip before the per-user
+                # capability collection below.
+                logger.info(
+                    f"Skipping account {user.account_id} with no owned roots"
+                )
+                processed_accounts.add(user.account_id)
+                continue
+            logger.info(
+                f"Account {user.account_id} owns "
+                f"{len(owned_root_market_ids)} cleanup roots"
+            )
             account_users = list(UserModel.scan(
                 filter_condition=UserModel.account_id == user.account_id,
                 consistent_read=True
@@ -442,6 +455,11 @@ def main(argv):
                     orphan_market_ids
                 )
             )
+            if preserve_primary and orphan_market_ids:
+                logger.info(
+                    'Deferring orphan recovery for '
+                    f'{len(orphan_market_ids)} missing-market references'
+                )
             recover_orphan_capabilities(
                 orphan_market_ids,
                 orphan_capability_keys,
@@ -451,7 +469,8 @@ def main(argv):
                     delete_orphan_versions
                     if preserve_primary
                     else None
-                )
+                ),
+                defer=preserve_primary
             )
 
             root_market_ids = list(dict.fromkeys(
@@ -469,6 +488,7 @@ def main(argv):
                     ),
                     get_machine_capability(market_id)
                 )
+                logger.info(f"Deleted market {market_id}")
             # Market rows disappear before their DynamoDB stream consumers
             # finish notification, audit, version, and capability cleanup.
             # Do not remove the identities those consumers need until both
@@ -492,6 +512,9 @@ def main(argv):
                 ])
             # notification delete by scan for external id - otherwise things were getting stuck
             if cleanup_policy['delete_notifications']:
+                logger.info(
+                    f"Deleting notifications for {user.external_id}"
+                )
                 notifications = AsyncNotificationsModel.scan(
                     filter_condition=(
                         AsyncNotificationsModel.external_id

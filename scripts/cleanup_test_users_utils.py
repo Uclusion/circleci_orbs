@@ -1,6 +1,9 @@
 import json
+import logging
 import time
 
+
+logger = logging.getLogger(__name__)
 
 CLEANUP_POLL_ATTEMPTS = 48
 CLEANUP_POLL_INTERVAL_SECONDS = 5
@@ -371,10 +374,20 @@ def recover_orphan_capabilities(
     orphan_capability_keys,
     wait_for_cleanup,
     invoke_cleanup,
-    delete_orphan_versions=None
+    delete_orphan_versions=None,
+    defer=False
 ):
     if not orphan_market_ids:
         return
+    if defer:
+        # Recovering missing-market residue scans and polls per dead
+        # reference and can stall preserve-primary CI cleanup for hours;
+        # it is deferred to separate work instead.
+        return
+    logger.info(
+        f'Recovering {len(orphan_capability_keys)} orphan capabilities '
+        f'for {len(orphan_market_ids)} missing markets'
+    )
     if delete_orphan_versions is not None:
         delete_orphan_versions(orphan_market_ids)
     wait_for_cleanup(set(orphan_market_ids), set())
@@ -393,6 +406,10 @@ def wait_for_downstream_cleanup(
     interval=CLEANUP_POLL_INTERVAL_SECONDS,
     sleep=time.sleep
 ):
+    logger.info(
+        f'Waiting for downstream cleanup of {len(market_ids)} markets '
+        f'and {len(capability_keys)} capabilities'
+    )
     remaining_versions = []
     remaining_capabilities = []
     for attempt in range(attempts):
@@ -401,7 +418,15 @@ def wait_for_downstream_cleanup(
             capability_keys
         )
         if not remaining_versions and not remaining_capabilities:
+            logger.info(
+                f'Downstream cleanup complete after {attempt + 1} checks'
+            )
             return
+        logger.info(
+            f'Downstream cleanup pending on attempt {attempt + 1} of '
+            f'{attempts}: {len(remaining_versions)} versions, '
+            f'{len(remaining_capabilities)} capabilities remain'
+        )
         if attempt + 1 < attempts:
             sleep(interval)
     raise RuntimeError(
