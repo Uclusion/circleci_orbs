@@ -26,9 +26,13 @@ from scripts.cleanup_test_users_utils import (
     invoke_market_delete as invoke_market_delete_with_client,
     invoke_request_response,
     is_market_delete_eligible,
+    assert_no_protected_integration_accounts,
+    PROTECTED_INTEGRATION_EMAIL,
+    prioritize_market_owning_users,
     recover_orphan_capabilities,
     select_cleanup_users,
     should_delete_user_audits,
+    validate_preserve_primary_emails,
     wait_for_downstream_cleanup
 )
 
@@ -197,6 +201,29 @@ def wait_for_cleanup(market_ids, capability_keys):
     )
 
 
+def delete_orphan_versions(market_ids):
+    versions_to_delete = []
+    for market_id in sorted(set(market_ids)):
+        try:
+            MarketModel.get(
+                market_id,
+                consistent_read=True
+            )
+        except DoesNotExist:
+            versions_to_delete.extend(ObjectVersionsModel.query(
+                market_id,
+                consistent_read=True
+            ))
+            continue
+        raise RuntimeError(
+            'Refusing orphan-version cleanup for existing market '
+            f'{market_id}'
+        )
+    with ObjectVersionsModel.batch_write() as versions_batch:
+        for version in versions_to_delete:
+            versions_batch.delete(version)
+
+
 def delete_account_user(user, delete_audits):
     capabilities = UserCapabilityModel.query(
         hash_key=user.id,
@@ -243,6 +270,8 @@ def main(argv):
             emails = arg.split(',')
         elif opt == '--preserve-primary':
             preserve_primary = True
+    if preserve_primary:
+        emails = validate_preserve_primary_emails(emails)
     logger.info("Starting cleanup")
     if emails is not None and len(emails) > 0 and len(emails[0]) > 0:
         has_emails = True
@@ -256,7 +285,30 @@ def main(argv):
     ]
     # Preserve-primary mode must never treat matching referred copies in
     # support/customer accounts as cleanup roots.
-    users = select_cleanup_users(users, preserve_primary)
+    users = select_cleanup_users(
+        users,
+        preserve_primary,
+        eligible_emails=emails if preserve_primary else None
+    )
+    if preserve_primary:
+        protected_users = UserModel.scan(
+            filter_condition=(
+                UserModel.email == PROTECTED_INTEGRATION_EMAIL
+            ),
+            consistent_read=True
+        )
+        assert_no_protected_integration_accounts(
+            users,
+            protected_users
+        )
+        market_account_ids = {
+            market.account_id
+            for market in MarketModel.scan(consistent_read=True)
+        }
+        users = prioritize_market_owning_users(
+            users,
+            market_account_ids
+        )
     processed_accounts = set()
     for user in users:
         if user.account_id in processed_accounts:
@@ -394,7 +446,12 @@ def main(argv):
                 orphan_market_ids,
                 orphan_capability_keys,
                 wait_for_cleanup,
-                invoke_users_capability_cleanup
+                invoke_users_capability_cleanup,
+                delete_orphan_versions=(
+                    delete_orphan_versions
+                    if preserve_primary
+                    else None
+                )
             )
 
             root_market_ids = list(dict.fromkeys(

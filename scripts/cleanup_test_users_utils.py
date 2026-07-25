@@ -4,6 +4,50 @@ import time
 
 CLEANUP_POLL_ATTEMPTS = 48
 CLEANUP_POLL_INTERVAL_SECONDS = 5
+INTEGRATION_TEST_ACCOUNT_EMAILS = frozenset({
+    'david.israel@uclude.com',
+    '827hooshang@gmail.com',
+})
+PROTECTED_INTEGRATION_EMAIL = 'disrael@uclusion.com'
+
+
+def validate_preserve_primary_emails(emails):
+    if not isinstance(emails, list):
+        raise ValueError(
+            'Preserve-primary cleanup requires the integration-test '
+            'account email allowlist'
+        )
+    normalized_emails = [
+        email.strip() for email in emails
+        if isinstance(email, str) and email.strip()
+    ]
+    if (
+        len(normalized_emails) != len(INTEGRATION_TEST_ACCOUNT_EMAILS)
+        or set(normalized_emails) != INTEGRATION_TEST_ACCOUNT_EMAILS
+    ):
+        raise ValueError(
+            'Preserve-primary cleanup requires exactly the approved '
+            'integration-test account emails'
+        )
+    return sorted(INTEGRATION_TEST_ACCOUNT_EMAILS)
+
+
+def assert_no_protected_integration_accounts(
+    selected_users,
+    protected_users
+):
+    selected_account_ids = {
+        user.account_id for user in selected_users
+    }
+    protected_account_ids = sorted({
+        user.account_id for user in protected_users
+        if user.account_id in selected_account_ids
+    })
+    if protected_account_ids:
+        raise RuntimeError(
+            'Refusing preserve-primary cleanup for accounts containing '
+            f'{PROTECTED_INTEGRATION_EMAIL}: {protected_account_ids}'
+        )
 
 
 def get_resource_environment(env_name):
@@ -244,27 +288,29 @@ def get_capability_cleanup_payloads(capability_keys, chunk_size=50):
     for capability_type, field_name in (
         ('group', 'group_id_list'),
         ('investible', 'investible_id_list'),
+        ('market', 'market_id_list'),
     ):
         object_ids = sorted(ids_by_type[capability_type])
         for start in range(0, len(object_ids), chunk_size):
             payloads.append({
                 field_name: object_ids[start:start + chunk_size]
             })
-    for market_id in sorted(ids_by_type['market']):
-        payloads.append({
-            'capability': {
-                'role': 'Machine',
-                'is_admin': True,
-                'type': 'market',
-                'id': market_id
-            }
-        })
     return payloads
 
 
-def select_cleanup_users(users, preserve_primary):
+def select_cleanup_users(
+    users,
+    preserve_primary,
+    eligible_emails=None
+):
     selected = list(users)
     if preserve_primary:
+        if eligible_emails is not None:
+            eligible_emails = set(eligible_emails)
+            selected = [
+                user for user in selected
+                if user.email in eligible_emails
+            ]
         selected = [
             user for user in selected
             if user.referring_user_id is None
@@ -272,6 +318,18 @@ def select_cleanup_users(users, preserve_primary):
     return sorted(
         selected,
         key=lambda user: user.referring_user_id is not None
+    )
+
+
+def prioritize_market_owning_users(users, market_account_ids):
+    market_account_ids = set(market_account_ids)
+    return sorted(
+        users,
+        key=lambda user: (
+            user.account_id not in market_account_ids,
+            user.account_id,
+            user.id,
+        )
     )
 
 
@@ -312,10 +370,13 @@ def recover_orphan_capabilities(
     orphan_market_ids,
     orphan_capability_keys,
     wait_for_cleanup,
-    invoke_cleanup
+    invoke_cleanup,
+    delete_orphan_versions=None
 ):
     if not orphan_market_ids:
         return
+    if delete_orphan_versions is not None:
+        delete_orphan_versions(orphan_market_ids)
     wait_for_cleanup(set(orphan_market_ids), set())
     for payload in get_capability_cleanup_payloads(
         orphan_capability_keys
