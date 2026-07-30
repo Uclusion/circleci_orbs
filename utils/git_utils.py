@@ -1,8 +1,83 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from github import GithubException, UnknownObjectException
+import time
 
 from utils.constants import rest_api_backend_repos, env_to_blessed_tag_prefixes
 import sys
+
+
+DEPLOYMENT_WORKFLOW_BY_TAG_PREFIX = {
+    'dev_backend': 'dev.yml',
+    'stage_backend': 'stage.yml',
+    'production_backend': 'prod.yml',
+}
+MARKETS_DEPLOYMENT_TIMEOUT_SECONDS = 30 * 60
+
+
+def deployment_workflow_for_tag(tag_name):
+    for prefix, workflow_name in DEPLOYMENT_WORKFLOW_BY_TAG_PREFIX.items():
+        if tag_name.startswith(prefix):
+            return workflow_name
+    return None
+
+
+def wait_for_release_deployment(repo, tag_name, sha, release_created_at=None,
+                                timeout_seconds=MARKETS_DEPLOYMENT_TIMEOUT_SECONDS,
+                                poll_seconds=10):
+    """Wait until the release-triggered deployment for one tag succeeds."""
+    workflow_name = deployment_workflow_for_tag(tag_name)
+    if workflow_name is None:
+        return
+    workflow = repo.get_workflow(workflow_name)
+    release_created_at = release_created_at or datetime.now(timezone.utc)
+    earliest_run = release_created_at - timedelta(seconds=10)
+    deadline = time.monotonic() + timeout_seconds
+    while True:
+        exact_runs = []
+        for run in workflow.get_runs(event='release', head_sha=sha)[:20]:
+            if (
+                (
+                    getattr(run, 'head_branch', None) == tag_name
+                    or getattr(run, 'display_title', None) == tag_name
+                )
+                and (
+                    getattr(run, 'created_at', None) is None
+                    or run.created_at >= earliest_run
+                )
+            ):
+                exact_runs.append(run)
+        if exact_runs:
+            run = max(
+                exact_runs,
+                key=lambda candidate: (
+                    getattr(candidate, 'created_at', None)
+                    or datetime.min.replace(tzinfo=timezone.utc)
+                )
+            )
+            if run.status == 'completed':
+                if run.conclusion == 'success':
+                    print(
+                        f"Deployment {tag_name} succeeded for {repo.name}"
+                    )
+                    return
+                raise RuntimeError(
+                    f"Deployment {tag_name} for {repo.name} finished "
+                    f"with {run.conclusion}: {run.html_url}"
+                )
+            print(
+                f"Waiting for deployment {tag_name} in {repo.name}: "
+                f"{run.status}"
+            )
+        else:
+            print(
+                f"Waiting for deployment workflow {tag_name} to start "
+                f"in {repo.name}"
+            )
+        if time.monotonic() >= deadline:
+            raise TimeoutError(
+                f"Timed out waiting for deployment {tag_name} in {repo.name}"
+            )
+        time.sleep(poll_seconds)
 
 
 def get_bless_tag(env_name):
@@ -114,17 +189,24 @@ def create_tag_and_release(repo, tag_name, tag_message, release_message, sha):
     # the replay. Tag names are unique per run, so "already exists" means our
     # own create landed - just make sure the release itself is there.
     try:
-        repo.create_git_tag_and_release(tag_name, tag_message, tag_name, release_message, sha, 'commit')
-        return
+        return repo.create_git_tag_and_release(
+            tag_name,
+            tag_message,
+            tag_name,
+            release_message,
+            sha,
+            'commit'
+        )
     except GithubException as e:
         if not is_already_exists_error(e):
             raise
     try:
-        repo.get_release(tag_name)
+        release = repo.get_release(tag_name)
         print("Release " + tag_name + " already exists in " + repo.name + " - continuing")
+        return release
     except UnknownObjectException:
         # only the tag ref made it - the release still needs creating
-        repo.create_git_release(tag_name, tag_name, release_message)
+        return repo.create_git_release(tag_name, tag_name, release_message)
 
 
 def clone_release(repo, old_release, new_name):
@@ -132,7 +214,13 @@ def clone_release(repo, old_release, new_name):
     sha = get_commit_sha_for_release(repo, old_release)
     if not sha:
         sys.exit(4)
-    create_tag_and_release(repo, new_name, 'Blessed build tag', 'Blessed', sha)
+    return create_tag_and_release(
+        repo,
+        new_name,
+        'Blessed build tag',
+        'Blessed',
+        sha
+    )
 
 
 def get_master_sha(github, repo_name):
@@ -143,6 +231,7 @@ def get_master_sha(github, repo_name):
 
 def release_head(github, dest_tag_name, prebuilt_releases, repo_name=None, is_ui=False):
     sha_map = {}
+    release_map = {}
     if prebuilt_releases is not None:
         for entry in prebuilt_releases:
             repo = entry[0]
@@ -150,6 +239,7 @@ def release_head(github, dest_tag_name, prebuilt_releases, repo_name=None, is_ui
             sha = get_commit_sha_for_release(repo, release)
             if sha:
                 sha_map[repo.name] = sha
+                release_map[repo.name] = release
 
     if repo_name:
         repos_to_search = [repo_name]
@@ -165,7 +255,32 @@ def release_head(github, dest_tag_name, prebuilt_releases, repo_name=None, is_ui
             continue
         sha = head.object.sha
         if sha != sha_map.get(repo.name):
-            create_tag_and_release(repo, dest_tag_name, 'Head Build', 'Head', sha)
+            release = create_tag_and_release(
+                repo,
+                dest_tag_name,
+                'Head Build',
+                'Head',
+                sha
+            )
+            if repo.name == 'uclusion_markets':
+                wait_for_release_deployment(
+                    repo,
+                    dest_tag_name,
+                    sha,
+                    getattr(release, 'created_at', None)
+                )
+        elif repo.name == 'uclusion_markets':
+            # A resumed aggregate build may find that Markets head was already
+            # released while its deployment is still queued, running, or
+            # failed. Verify that exact prebuilt release before publishing any
+            # consumer release.
+            release = release_map[repo.name]
+            wait_for_release_deployment(
+                repo,
+                release.tag_name,
+                sha,
+                getattr(release, 'created_at', None)
+            )
 
 
 def clone_latest_releases_with_prefix(github, source_prefix, dest_tag_name, repo_name=None, is_ui=False, output_intermediate=False):
@@ -178,6 +293,13 @@ def clone_latest_releases_with_prefix(github, source_prefix, dest_tag_name, repo
         release = candidate[1]
         if output_intermediate:
             print("Will clone " + release.tag_name + " in repo " + repo.name + " to " + dest_tag_name)
-        clone_release(repo, release, dest_tag_name)
+        cloned_release = clone_release(repo, release, dest_tag_name)
+        if repo.name == 'uclusion_markets':
+            wait_for_release_deployment(
+                repo,
+                dest_tag_name,
+                get_commit_sha_for_release(repo, release),
+                getattr(cloned_release, 'created_at', None)
+            )
         clones.append([repo.name, release.tag_name, dest_tag_name])
     return clones
