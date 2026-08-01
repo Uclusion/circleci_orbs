@@ -34,7 +34,13 @@ def wait_for_release_deployment(repo, tag_name, sha, release_created_at=None,
     deadline = time.monotonic() + timeout_seconds
     while True:
         exact_runs = []
-        for run in workflow.get_runs(event='release', head_sha=sha)[:20]:
+        # No slicing: a fresh sha polled before GitHub registers its run returns an
+        # empty paginated list, and PyGithub's slice raises IndexError on it instead
+        # of yielding nothing (B-all-526 follow-up). Bounded enumeration is safe -
+        # empty just falls through to the wait-and-poll branch below.
+        for run_index, run in enumerate(workflow.get_runs(event='release', head_sha=sha)):
+            if run_index >= 20:
+                break
             if (
                 (
                     getattr(run, 'head_branch', None) == tag_name
