@@ -19,25 +19,28 @@ def get_build_tag(env_name):
     return build_tag
 
 
-def build_blessed(github, env_name, repo_name=None, is_ui=False, is_backend_all=False):
+def build_blessed(github, env_name, repo_name=None, is_ui=False, layers_changed=False):
     build_tag = get_build_tag(env_name)
     blessed_prefix = env_to_buildable_tag_prefixes[env_name]
     # dev does not build off of a blessed previous release
     # it builds off of head
-    if not is_backend_all and (env_name == 'development' or (env_name == 'stage' and is_ui)):
+    if env_name == 'development' or (env_name == 'stage' and is_ui):
         # For UI we are specifically told to build so not much point in checking old releases for duplicate
         prebuilt_releases = get_latest_releases_with_prefix(github, blessed_prefix, repo_name, is_ui) \
             if not is_ui else None
-        release_head(github, build_tag, prebuilt_releases, repo_name, is_ui)
+        # B-all-526: one release decision per repo - changed head builds at head, unchanged
+        # head with changed layers re-releases for a layer refresh, otherwise skip. The old
+        # separate clone-everything pass raced these head releases.
+        release_head(github, build_tag, prebuilt_releases, repo_name, is_ui, layers_changed)
     else:
         clone_latest_releases_with_prefix(github, blessed_prefix, build_tag, repo_name, is_ui, True)
 
 
 def main(argv):
-    usage = 'python -m scripts.test_and_bless -e env_name -a github_access_token -r repo_name -u is_ui -b backend_all'
+    usage = 'python -m scripts.build_blessed -e env_name -a github_access_token -r repo_name -u is_ui -l layers_changed'
     try:
-        opts, args = getopt.getopt(argv, 'h:e:a:r:u:b:',
-                                   ['env=','gtoken=', 'repo-name=', 'ui=', 'backend-all'])
+        opts, args = getopt.getopt(argv, 'h:e:a:r:u:l:',
+                                   ['env=', 'gtoken=', 'repo-name=', 'ui=', 'layers-changed='])
     except getopt.GetoptError:
         logger.info(usage)
         sys.exit(2)
@@ -45,7 +48,7 @@ def main(argv):
     github_token = None
     repo_name = None
     is_ui = False
-    is_backend_all = False
+    layers_changed = False
     for opt, arg in opts:
         if opt == '-h':
             logger.info(usage)
@@ -58,8 +61,8 @@ def main(argv):
             repo_name = arg
         elif opt in ('-u', '--ui'):
             is_ui = arg.lower() == 'true'
-        elif opt in ('-b', '--backend-all'):
-            is_backend_all = arg.lower() == 'true'
+        elif opt in ('-l', '--layers-changed'):
+            layers_changed = arg.lower() == 'true'
     if env_name is None or github_token is None:
         logger.info(usage)
         sys.exit(2)
@@ -67,7 +70,7 @@ def main(argv):
     logger.info("Using token")
     github = Github(auth=Auth.Token(github_token))
     logger.info("Starting build blessed")
-    build_blessed(github, env_name, repo_name, is_ui, is_backend_all)
+    build_blessed(github, env_name, repo_name, is_ui, layers_changed)
 
 
 if __name__ == "__main__":

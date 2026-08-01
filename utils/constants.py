@@ -3,6 +3,10 @@ rest_api_backend_repos = ['uclusion_markets', 'uclusion_async', 'uclusion_invest
                           'uclusion_user_api', 'uclusion_websockets', 'uclusion_common',
                           'uclusion_backend_common', 'uclusion_summaries', 'common_lambda_dependencies']
 
+# The layer sources deploy directly in deploy_common.sh and have no release-triggered
+# workflows, so a layer-refresh release of them rebuilds nothing (B-all-526)
+layer_source_repos = ['uclusion_common', 'uclusion_backend_common', 'common_lambda_dependencies']
+
 env_to_blessed_tag_prefixes = {
     'development': 'stage_blessed',
     'stage': 'production_blessed',

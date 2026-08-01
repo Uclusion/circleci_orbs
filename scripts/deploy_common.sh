@@ -40,10 +40,6 @@ function build_common_dependencies() {
     fi
 }
 
-function update_layers() {
-    python -m scripts.build_blessed -e $ENV_NAME -a $GITHUB_TOKEN -b true
-}
-
 BACKEND_COMMON=$(build_common "uclusion_backend_common")
 echo $BACKEND_COMMON
 COMMON=$(build_common "uclusion_common")
@@ -51,12 +47,10 @@ echo $COMMON
 COMMON_DEPENDENCIES=$(build_common_dependencies)
 echo $COMMON_DEPENDENCIES
 if [[ "$BACKEND_COMMON" != "skip" ]] || [[ "$COMMON" != "skip" ]] || [[ "$COMMON_DEPENDENCIES" != "skip" ]]; then
-  if [[ "$ENV_NAME" == "development" ]]; then
-    echo "Updating Layers"
-    update_layers
-  else
-    echo "Layers will be updated when deploy Lambdas"
-  fi
+  # B-all-526: no second wave of releases from here - record that layers changed and the
+  # caller passes -l true so build_blessed makes the one release decision per repo
+  touch layers_changed
+  echo "Layers changed - caller rebuilds Lambdas via build_blessed -l true"
 else
     echo "Layers up to date"
 fi

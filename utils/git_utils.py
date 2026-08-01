@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from github import GithubException, UnknownObjectException
 import time
 
-from utils.constants import rest_api_backend_repos, env_to_blessed_tag_prefixes
+from utils.constants import rest_api_backend_repos, env_to_blessed_tag_prefixes, layer_source_repos
 import sys
 
 
@@ -229,7 +229,7 @@ def get_master_sha(github, repo_name):
     return head.object.sha
 
 
-def release_head(github, dest_tag_name, prebuilt_releases, repo_name=None, is_ui=False):
+def release_head(github, dest_tag_name, prebuilt_releases, repo_name=None, is_ui=False, layers_changed=False):
     sha_map = {}
     release_map = {}
     if prebuilt_releases is not None:
@@ -260,6 +260,25 @@ def release_head(github, dest_tag_name, prebuilt_releases, repo_name=None, is_ui
                 dest_tag_name,
                 'Head Build',
                 'Head',
+                sha
+            )
+            if repo.name == 'uclusion_markets':
+                wait_for_release_deployment(
+                    repo,
+                    dest_tag_name,
+                    sha,
+                    getattr(release, 'created_at', None)
+                )
+        elif layers_changed and repo.name not in layer_source_repos:
+            # B-all-526: head matches the last build but the layers changed underneath it,
+            # so re-release the same sha to rebuild this repo's Lambdas against the new
+            # layers. This single pass replaces the old clone-everything first pass whose
+            # in-flight deployments the head releases used to collide with.
+            release = create_tag_and_release(
+                repo,
+                dest_tag_name,
+                'Layer refresh',
+                'Layer refresh',
                 sha
             )
             if repo.name == 'uclusion_markets':
