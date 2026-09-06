@@ -1,89 +1,8 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from github import GithubException, UnknownObjectException
-import time
 
 from utils.constants import rest_api_backend_repos, env_to_blessed_tag_prefixes, layer_source_repos
 import sys
-
-
-DEPLOYMENT_WORKFLOW_BY_TAG_PREFIX = {
-    'dev_backend': 'dev.yml',
-    'stage_backend': 'stage.yml',
-    'production_backend': 'prod.yml',
-}
-MARKETS_DEPLOYMENT_TIMEOUT_SECONDS = 30 * 60
-
-
-def deployment_workflow_for_tag(tag_name):
-    for prefix, workflow_name in DEPLOYMENT_WORKFLOW_BY_TAG_PREFIX.items():
-        if tag_name.startswith(prefix):
-            return workflow_name
-    return None
-
-
-def wait_for_release_deployment(repo, tag_name, sha, release_created_at=None,
-                                timeout_seconds=MARKETS_DEPLOYMENT_TIMEOUT_SECONDS,
-                                poll_seconds=10):
-    """Wait until the release-triggered deployment for one tag succeeds."""
-    workflow_name = deployment_workflow_for_tag(tag_name)
-    if workflow_name is None:
-        return
-    workflow = repo.get_workflow(workflow_name)
-    release_created_at = release_created_at or datetime.now(timezone.utc)
-    earliest_run = release_created_at - timedelta(seconds=10)
-    deadline = time.monotonic() + timeout_seconds
-    while True:
-        exact_runs = []
-        # No slicing: a fresh sha polled before GitHub registers its run returns an
-        # empty paginated list, and PyGithub's slice raises IndexError on it instead
-        # of yielding nothing (B-all-526 follow-up). Bounded enumeration is safe -
-        # empty just falls through to the wait-and-poll branch below.
-        for run_index, run in enumerate(workflow.get_runs(event='release', head_sha=sha)):
-            if run_index >= 20:
-                break
-            if (
-                (
-                    getattr(run, 'head_branch', None) == tag_name
-                    or getattr(run, 'display_title', None) == tag_name
-                )
-                and (
-                    getattr(run, 'created_at', None) is None
-                    or run.created_at >= earliest_run
-                )
-            ):
-                exact_runs.append(run)
-        if exact_runs:
-            run = max(
-                exact_runs,
-                key=lambda candidate: (
-                    getattr(candidate, 'created_at', None)
-                    or datetime.min.replace(tzinfo=timezone.utc)
-                )
-            )
-            if run.status == 'completed':
-                if run.conclusion == 'success':
-                    print(
-                        f"Deployment {tag_name} succeeded for {repo.name}"
-                    )
-                    return
-                raise RuntimeError(
-                    f"Deployment {tag_name} for {repo.name} finished "
-                    f"with {run.conclusion}: {run.html_url}"
-                )
-            print(
-                f"Waiting for deployment {tag_name} in {repo.name}: "
-                f"{run.status}"
-            )
-        else:
-            print(
-                f"Waiting for deployment workflow {tag_name} to start "
-                f"in {repo.name}"
-            )
-        if time.monotonic() >= deadline:
-            raise TimeoutError(
-                f"Timed out waiting for deployment {tag_name} in {repo.name}"
-            )
-        time.sleep(poll_seconds)
 
 
 def get_bless_tag(env_name):
@@ -237,7 +156,6 @@ def get_master_sha(github, repo_name):
 
 def release_head(github, dest_tag_name, prebuilt_releases, repo_name=None, is_ui=False, layers_changed=False):
     sha_map = {}
-    release_map = {}
     if prebuilt_releases is not None:
         for entry in prebuilt_releases:
             repo = entry[0]
@@ -245,7 +163,6 @@ def release_head(github, dest_tag_name, prebuilt_releases, repo_name=None, is_ui
             sha = get_commit_sha_for_release(repo, release)
             if sha:
                 sha_map[repo.name] = sha
-                release_map[repo.name] = release
 
     if repo_name:
         repos_to_search = [repo_name]
@@ -261,50 +178,24 @@ def release_head(github, dest_tag_name, prebuilt_releases, repo_name=None, is_ui
             continue
         sha = head.object.sha
         if sha != sha_map.get(repo.name):
-            release = create_tag_and_release(
+            create_tag_and_release(
                 repo,
                 dest_tag_name,
                 'Head Build',
                 'Head',
                 sha
             )
-            if repo.name == 'uclusion_markets':
-                wait_for_release_deployment(
-                    repo,
-                    dest_tag_name,
-                    sha,
-                    getattr(release, 'created_at', None)
-                )
         elif layers_changed and repo.name not in layer_source_repos:
             # B-all-526: head matches the last build but the layers changed underneath it,
             # so re-release the same sha to rebuild this repo's Lambdas against the new
             # layers. This single pass replaces the old clone-everything first pass whose
             # in-flight deployments the head releases used to collide with.
-            release = create_tag_and_release(
+            create_tag_and_release(
                 repo,
                 dest_tag_name,
                 'Layer refresh',
                 'Layer refresh',
                 sha
-            )
-            if repo.name == 'uclusion_markets':
-                wait_for_release_deployment(
-                    repo,
-                    dest_tag_name,
-                    sha,
-                    getattr(release, 'created_at', None)
-                )
-        elif repo.name == 'uclusion_markets':
-            # A resumed aggregate build may find that Markets head was already
-            # released while its deployment is still queued, running, or
-            # failed. Verify that exact prebuilt release before publishing any
-            # consumer release.
-            release = release_map[repo.name]
-            wait_for_release_deployment(
-                repo,
-                release.tag_name,
-                sha,
-                getattr(release, 'created_at', None)
             )
 
 
@@ -318,13 +209,6 @@ def clone_latest_releases_with_prefix(github, source_prefix, dest_tag_name, repo
         release = candidate[1]
         if output_intermediate:
             print("Will clone " + release.tag_name + " in repo " + repo.name + " to " + dest_tag_name)
-        cloned_release = clone_release(repo, release, dest_tag_name)
-        if repo.name == 'uclusion_markets':
-            wait_for_release_deployment(
-                repo,
-                dest_tag_name,
-                get_commit_sha_for_release(repo, release),
-                getattr(cloned_release, 'created_at', None)
-            )
+        clone_release(repo, release, dest_tag_name)
         clones.append([repo.name, release.tag_name, dest_tag_name])
     return clones
